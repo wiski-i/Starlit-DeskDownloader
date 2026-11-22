@@ -1,0 +1,6 @@
+__pycache__/
+.venv/
+.deps/
+build/
+dist/
+onizleme.png
