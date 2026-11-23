@@ -68,6 +68,17 @@ class DownloadProfile:
             quality = output.default
         return cls(format_id, quality)
 
+    @classmethod
+    def read_settings(cls, settings, format_id: str | None = None) -> "DownloadProfile":
+        if format_id is None:
+            format_id = settings.value("downloadFormat", "original", type=str)
+        quality = settings.value(f"downloadQuality/{format_id}", "", type=str)
+        return cls.from_setting(format_id, quality)
+
+    def save_settings(self, settings) -> None:
+        settings.setValue("downloadFormat", self.format_id)
+        settings.setValue(f"downloadQuality/{self.format_id}", self.quality)
+
     @property
     def output(self) -> OutputFormat:
         return FORMATS[self.format_id]
@@ -77,3 +88,22 @@ class DownloadProfile:
         if self.output.group != "audio" and self.quality != "best":
             return int(self.quality)
         return None
+
+
+def browser_profiles(settings) -> dict:
+    """Expose the desktop catalog and defaults without starting a download."""
+    selected = DownloadProfile.read_settings(settings)
+    return {
+        "status": "profiles",
+        "selected": {"format": selected.format_id, "quality": selected.quality},
+        "formats": [
+            {
+                "key": key,
+                "label": output.label,
+                "group": output.group,
+                "quality": DownloadProfile.read_settings(settings, key).quality,
+                "qualities": [{"key": quality.key, "label": quality.label} for quality in output.qualities],
+            }
+            for key, output in FORMATS.items()
+        ],
+    }

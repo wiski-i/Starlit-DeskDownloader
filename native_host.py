@@ -7,14 +7,16 @@ import sys
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QCoreApplication
+from PySide6.QtCore import QCoreApplication, QSettings
 
 from browser_bridge import (
-    HEADER, connect_to_desktop, decode_message, desktop_response, encode_message, message_size, request_url,
+    HEADER, BrowserDownload, RequestError, connect_to_desktop, decode_message, desktop_response,
+    encode_message, message_size, parse_download_request,
 )
+from media_profiles import browser_profiles
 
 
-def send_to_desktop(url: str) -> dict:
+def send_to_desktop(request: BrowserDownload) -> dict:
     socket = connect_to_desktop()
     if socket is None:
         if getattr(sys, "frozen", False):
@@ -32,9 +34,34 @@ def send_to_desktop(url: str) -> dict:
     if socket is None:
         return {"status": "desktop_unavailable"}
     try:
-        return desktop_response(socket, url)
+        reply = desktop_response(socket, request)
+        # Older desktop processes reject any field besides action and URL.
+        if request.profile is not None and reply.get("status") == "invalid_url":
+            return {"status": "upgrade_required"}
+        return reply
     finally:
         socket.abort()
+
+
+def read_message() -> dict:
+    size = message_size(sys.stdin.buffer.read(HEADER.size))
+    data = sys.stdin.buffer.read(size)
+    if len(data) != size:
+        raise ValueError("Incomplete request")
+    return decode_message(data)
+
+
+def handle_message(message: dict) -> dict:
+    if message == {"action": "get_profiles"}:
+        return browser_profiles(QSettings("HizliIndir", "HizliIndir"))
+    try:
+        request = parse_download_request(message)
+    except RequestError as error:
+        return {"status": str(error)}
+    try:
+        return send_to_desktop(request)
+    except (OSError, ValueError):
+        return {"status": "desktop_unavailable"}
 
 
 def main() -> None:
@@ -42,17 +69,11 @@ def main() -> None:
     msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
     msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
     try:
-        size = message_size(sys.stdin.buffer.read(HEADER.size))
-        data = sys.stdin.buffer.read(size)
-        if len(data) != size:
-            raise ValueError("Incomplete request")
-        url = request_url(decode_message(data))
+        message = read_message()
     except ValueError:
-        url = None
-    try:
-        reply = send_to_desktop(url) if url is not None else {"status": "invalid_url"}
-    except (OSError, ValueError):
-        reply = {"status": "desktop_unavailable"}
+        reply = {"status": "invalid_url"}
+    else:
+        reply = handle_message(message)
     sys.stdout.buffer.write(encode_message(reply))
     sys.stdout.buffer.flush()
 

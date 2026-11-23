@@ -1,0 +1,224 @@
+/* FiveM Liquid Glass 1.2.0 — no CDN, reset, framework or runtime dependency.
+   Add .lg-theme to an existing UI root; opt in with lg-* component classes. */
+.lg-theme {
+  --lg-font: Inter, 'Segoe UI', system-ui, sans-serif;
+  --lg-mono: 'JetBrains Mono', Consolas, monospace;
+  --lg-text: #fff;
+  --lg-secondary: rgba(255,255,255,.78);
+  --lg-muted: rgba(255,255,255,.62);
+  --lg-solid: #211c28;
+  --lg-surface-subtle: rgba(255,255,255,.045);
+  --lg-surface-panel: rgba(12,10,19,.24);
+  --lg-surface-strong: rgba(12,10,19,.72);
+  --lg-border: rgba(255,255,255,.18);
+  --lg-border-soft: rgba(255,255,255,.10);
+  --lg-rim: rgba(255,255,255,.23);
+  --lg-accent: #711b36;
+  --lg-accent-hover: #943350;
+  --lg-accent-ink: #ffc4d8;
+  --lg-on-accent: #fff;
+  --lg-accent-fill: rgba(113,27,54,.24);
+  --lg-accent-border: rgba(238,143,175,.35);
+  --lg-focus: #ffc4d8;
+  --lg-success: #82e9bc;
+  --lg-warning: #ffdb8a;
+  --lg-danger: #ffa3b9;
+  --lg-success-fill: rgba(21,116,77,.22);
+  --lg-warning-fill: rgba(131,87,17,.22);
+  --lg-danger-fill: rgba(156,37,68,.22);
+  --lg-shadow: 0 16px 44px -16px rgba(12,5,20,.42);
+  --lg-filter-panel: blur(16px);
+  --lg-filter-strong: blur(20px);
+  --lg-radius-sm: 10px;
+  --lg-radius-card: 14px;
+  --lg-radius-panel: 24px;
+  --lg-radius-dialog: 28px;
+  --lg-space-1: 4px;
+  --lg-space-2: 8px;
+  --lg-space-3: 12px;
+  --lg-space-4: 16px;
+  --lg-space-5: 24px;
+  --lg-space-6: 32px;
+  --lg-gap: 16px;
+  --lg-padding: 24px;
+  --lg-control-height: 38px;
+  --lg-motion: 180ms;
+  color: var(--lg-text);
+  font: 14px/1.5 var(--lg-font);
+  color-scheme: dark;
+}
+.lg-theme[data-lg-theme="light"] {
+  --lg-text: #261c2b;
+  --lg-secondary: rgba(38,28,43,.8);
+  --lg-muted: rgba(38,28,43,.68);
+  --lg-solid: #f5eff5;
+  --lg-surface-subtle: rgba(255,255,255,.17);
+  --lg-surface-panel: rgba(255,255,255,.48);
+  --lg-surface-strong: rgba(255,255,255,.9);
+  --lg-border: rgba(255,255,255,.5);
+  --lg-border-soft: rgba(70,46,65,.16);
+  --lg-rim: rgba(255,255,255,.72);
+  --lg-accent-ink: #711b36;
+  --lg-accent-fill: rgba(113,27,54,.1);
+  --lg-accent-border: rgba(113,27,54,.3);
+  --lg-focus: #711b36;
+  --lg-success: #0d5b3d;
+  --lg-warning: #69440b;
+  --lg-danger: #9a2042;
+  --lg-success-fill: rgba(21,116,77,.1);
+  --lg-warning-fill: rgba(131,87,17,.1);
+  --lg-danger-fill: rgba(156,37,68,.1);
+  color-scheme: light;
+}
+.lg-theme[data-lg-theme="adaptive"] {
+  --lg-surface-subtle: rgba(255,255,255,.09);
+  --lg-surface-panel: rgba(20,16,30,.32);
+  --lg-surface-strong: rgba(20,16,30,.78);
+  --lg-border: rgba(255,255,255,.22);
+}
+.lg-theme[data-lg-accent="white"] {
+  --lg-accent: #fff; --lg-accent-hover: #e9e3ed;
+  --lg-on-accent: #211c28; --lg-accent-ink: var(--lg-text);
+  --lg-accent-fill: rgba(255,255,255,.12);
+  --lg-accent-border: var(--lg-border); --lg-focus: var(--lg-text);
+}
+.lg-theme[data-lg-accent="black"] {
+  --lg-accent: #111; --lg-accent-hover: #282128;
+  --lg-on-accent: #fff; --lg-accent-ink: var(--lg-text);
+  --lg-accent-fill: rgba(0,0,0,.1);
+  --lg-accent-border: var(--lg-border-soft); --lg-focus: var(--lg-text);
+}
+.lg-theme[data-lg-density="compact"] { --lg-gap: 12px; --lg-padding: 16px; --lg-control-height: 32px; font-size: 13px; }
+/* NUI does not get a wallpaper or a fullscreen overlay from this library.
+   Avoid depending on browser backdrop sampling of the game framebuffer. */
+.lg-theme[data-lg-mode="nui"], .lg-theme[data-lg-effects="reduced"] {
+  --lg-filter-panel: none; --lg-filter-strong: none;
+  --lg-surface-panel: rgba(18,14,25,.72);
+  --lg-surface-strong: rgba(18,14,25,.94);
+}
+.lg-theme[data-lg-mode="nui"][data-lg-theme="light"],
+.lg-theme[data-lg-effects="reduced"][data-lg-theme="light"] {
+  --lg-surface-panel: rgba(249,242,248,.86);
+  --lg-surface-strong: rgba(249,242,248,.97);
+}
+.lg-theme, .lg-theme :where(*) { box-sizing: border-box; }
+.lg-theme [hidden] { display: none !important; }
+.lg-theme :where(button,input,select,textarea) { font: inherit; }
+.lg-theme :where(button,input,select,textarea,a):focus-visible { outline: 2px solid var(--lg-focus); outline-offset: 3px; }
+.lg-panel, .lg-card, .lg-dialog {
+  color: var(--lg-text);
+  border: 1px solid var(--lg-border);
+  background-image: linear-gradient(135deg,rgba(255,255,255,.065),transparent 55%);
+  box-shadow: inset 0 1px 0 var(--lg-rim), var(--lg-shadow);
+  min-width: 0;
+}
+.lg-panel {
+  padding: var(--lg-padding); border-radius: var(--lg-radius-panel);
+  background-color: var(--lg-surface-panel);
+  backdrop-filter: var(--lg-filter-panel); -webkit-backdrop-filter: var(--lg-filter-panel);
+}
+.lg-card {
+  padding: var(--lg-space-4); border-radius: var(--lg-radius-card);
+  background-color: var(--lg-surface-subtle); border-color: var(--lg-border-soft);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+}
+.lg-dialog {
+  padding: var(--lg-padding); border-radius: var(--lg-radius-dialog);
+  background-color: var(--lg-surface-strong);
+  backdrop-filter: var(--lg-filter-strong); -webkit-backdrop-filter: var(--lg-filter-strong);
+  width: min(440px,calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto;
+}
+.lg-dialog::backdrop { background: rgba(10,6,16,.3); }
+.lg-theme[data-lg-mode="nui"] .lg-dialog::backdrop { background: transparent; }
+.lg-title { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 600; letter-spacing: -.025em; }
+.lg-label { display: block; margin: 0 0 6px; font-size: 12px; color: var(--lg-secondary); }
+.lg-eyebrow { margin: 0 0 6px; font-size: 10px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--lg-muted); }
+.lg-secondary { color: var(--lg-secondary); }
+.lg-muted { color: var(--lg-muted); }
+.lg-mono { font-family: var(--lg-mono); font-variant-numeric: tabular-nums; }
+.lg-stack { display: flex; flex-direction: column; gap: var(--lg-gap); }
+.lg-row { display: flex; align-items: center; gap: var(--lg-gap); flex-wrap: wrap; }
+.lg-between { justify-content: space-between; }
+.lg-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,220px),1fr)); gap: var(--lg-gap); }
+.lg-divider { height: 1px; border: 0; background: var(--lg-border-soft); margin: var(--lg-gap) 0; }
+.lg-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--lg-control-height); padding: 7px 14px;
+  color: var(--lg-text); background: var(--lg-surface-subtle);
+  border: 1px solid var(--lg-border); border-radius: var(--lg-radius-sm);
+  cursor: pointer; text-decoration: none; font-weight: 500; font-size: 12px;
+  transition: background-color var(--lg-motion), color var(--lg-motion);
+}
+.lg-button:hover:not(:disabled) { background-color: var(--lg-accent-fill); box-shadow: inset 0 1px 0 var(--lg-rim); }
+.lg-button--primary { color: var(--lg-on-accent); background: linear-gradient(145deg,rgba(255,255,255,.12),transparent 70%),var(--lg-accent); border-color: var(--lg-accent-border); }
+.lg-button--primary:hover:not(:disabled) { background-color: var(--lg-accent-hover); }
+.lg-button--ghost { background: transparent; border-color: transparent; color: var(--lg-secondary); }
+.lg-button--danger { color: var(--lg-danger); background: var(--lg-danger-fill); }
+.lg-button:disabled { opacity: .45; cursor: not-allowed; }
+.lg-icon-button { width: var(--lg-control-height); padding: 7px; flex-shrink: 0; }
+.lg-input {
+  display: block; width: 100%; min-width: 0; min-height: var(--lg-control-height);
+  border: 1px solid var(--lg-border); border-radius: var(--lg-radius-sm);
+  background: var(--lg-surface-subtle); color: var(--lg-text); padding: 9px 12px;
+}
+.lg-input::placeholder { color: var(--lg-muted); }
+.lg-input[aria-invalid="true"] { border-color: var(--lg-danger); }
+.lg-input:disabled { opacity: .5; cursor: not-allowed; }
+select.lg-input option { background: var(--lg-solid); color: var(--lg-text); }
+textarea.lg-input { resize: vertical; min-height: 88px; }
+.lg-check { display: inline-flex; align-items: center; gap: 8px; color: var(--lg-secondary); font-size: 12px; }
+.lg-check input { accent-color: var(--lg-accent); width: 16px; height: 16px; }
+.lg-segment { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid var(--lg-border-soft); background: var(--lg-surface-subtle); }
+.lg-segment .lg-button { border: 0; background: transparent; min-height: 30px; color: var(--lg-secondary); }
+.lg-segment .lg-button[aria-pressed="true"] { background: var(--lg-text); color: var(--lg-solid); box-shadow: 0 2px 8px #0002; }
+.lg-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--lg-accent-border); background: var(--lg-accent-fill); color: var(--lg-accent-ink); font-size: 11px; white-space: nowrap; }
+.lg-badge--success { background: var(--lg-success-fill); color: var(--lg-success); border-color: currentColor; }
+.lg-badge--warning { background: var(--lg-warning-fill); color: var(--lg-warning); border-color: currentColor; }
+.lg-badge--danger { background: var(--lg-danger-fill); color: var(--lg-danger); border-color: currentColor; }
+.lg-table-wrap { overflow: auto; border: 1px solid var(--lg-border-soft); border-radius: var(--lg-radius-card); }
+.lg-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+.lg-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--lg-muted); font-weight: 600; }
+.lg-table :where(th,td) { padding: 12px 14px; border-bottom: 1px solid var(--lg-border-soft); }
+.lg-table tbody tr:last-child td { border-bottom: 0; }
+.lg-table tbody tr:hover { background: var(--lg-surface-subtle); }
+.lg-progress { width: 100%; height: 6px; display: block; border: 0; border-radius: 99px; overflow: hidden; appearance: none; background: var(--lg-border-soft); }
+.lg-progress::-webkit-progress-bar { background: var(--lg-border-soft); }
+.lg-progress::-webkit-progress-value { background: var(--lg-success); border-radius: 99px; }
+.lg-progress::-moz-progress-bar { background: var(--lg-success); border-radius: 99px; }
+.lg-alert { padding: 12px 14px; border: 1px solid var(--lg-border); border-left: 3px solid var(--lg-accent-ink); border-radius: var(--lg-radius-sm); background: var(--lg-surface-subtle); font-size: 12px; }
+.lg-alert--danger { border-left-color: var(--lg-danger); color: var(--lg-danger); }
+@media (prefers-reduced-motion: reduce) { .lg-theme *, .lg-theme *::before, .lg-theme *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+@supports not (backdrop-filter: blur(1px)) { .lg-panel, .lg-dialog { background-color: var(--lg-solid); } }
+
+/* Performance: keep texture processing out of nested surfaces. */
+.lg-panel .lg-panel, .lg-dialog .lg-panel, .lg-panel--flat {
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.lg-panel, .lg-card, .lg-dialog, .lg-title { overflow-wrap: anywhere; }
+.lg-theme[data-lg-mode="nui"], .lg-theme[data-lg-effects="reduced"] {
+  --lg-motion: 0ms;
+  --lg-shadow: 0 8px 20px -12px rgba(12,5,20,.4);
+}
+
+/* Material variants. Omitted style intentionally means Parlak Cam. */
+.lg-theme { --lg-material: linear-gradient(135deg,rgba(255,255,255,.12),transparent 48%); }
+.lg-theme:not([data-lg-style]), .lg-theme[data-lg-style="glass"] {
+  --lg-rim: rgba(255,255,255,.32); --lg-border: rgba(239,218,246,.28);
+}
+.lg-theme[data-lg-style="quiet"] {
+  --lg-material: linear-gradient(135deg,rgba(255,255,255,.025),transparent);
+  --lg-border: rgba(200,187,207,.18); --lg-rim: rgba(255,255,255,.13);
+}
+.lg-theme[data-lg-style="technical"] {
+  --lg-material: none; --lg-radius-sm: 6px; --lg-radius-card: 8px;
+  --lg-radius-panel: 16px; --lg-radius-dialog: 16px;
+  --lg-border: rgba(153,177,198,.24); --lg-rim: rgba(255,255,255,.10);
+}
+.lg-theme[data-lg-style="technical"] :where(.lg-eyebrow,.lg-badge,.lg-number) {
+  font-family: var(--lg-mono); font-variant-numeric: tabular-nums;
+}
+.lg-theme :where(.lg-panel,.lg-card,.lg-dialog) { background-image: var(--lg-material); }
+.lg-theme[data-lg-style="glass"] .lg-card {
+  background-image: linear-gradient(135deg,rgba(236,159,183,.09),rgba(148,186,231,.07));
+}
+.lg-theme[data-lg-theme="light"] { --lg-border: rgba(70,46,65,.22); --lg-rim: rgba(255,255,255,.75); }

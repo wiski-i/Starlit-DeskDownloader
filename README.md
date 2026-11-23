@@ -18,7 +18,9 @@ Double-click `dist/HizliIndir/HizliIndir.exe`. Keep the `_internal` folder along
 
 You can also paste any HTTP or HTTPS file URL into the app. Select **Değiştir** to choose another destination. To change the global shortcut, open **Ayarlar → Klavye kısayolu**, press the combination, and select **Kaydet**. Closing the window keeps the shortcut active in the notification area. Open the executable again or click its notification icon to bring back the window. To stop the app, select **Çıkış** from the notification icon menu.
 
-Pick **Biçim** and **Kalite** before downloading. The Chrome extension and the keyboard shortcut use the last selection from this panel. **Orijinal** keeps direct files intact and can prefer a resolution on video pages. Video conversion can lower the source resolution, and the quality label is a ceiling. Audio bit rates apply to the encoded output. For WAV the quality setting controls PCM bit depth. For FLAC it controls lossless compression. Ordinary files such as ZIP and PDF are always saved as received.
+Pick **Biçim** and **Kalite** before downloading. The keyboard shortcut and Chrome’s right-click menu use the last desktop selection. With Windows Setup 0.2.1 and Chrome extension 0.2.0, the Chrome toolbar popup starts with your desktop settings and lets you override them for a single download. If you already loaded the unpacked extension from the updated folder, use **Reload** on its card at `chrome://extensions`.
+
+**Orijinal** keeps direct files intact and can prefer a resolution on video pages. Video conversion can lower the source resolution, and the quality label is a ceiling. Audio bit rates apply to the encoded output. For WAV the quality setting controls PCM bit depth. For FLAC it controls lossless compression. Ordinary files such as ZIP and PDF are always saved as received.
 
 Chrome address capture depends on Windows accessibility. If Chrome does not expose the active address, paste a link. The download engine supports direct file responses and supported video pages. For other pages, copy the underlying file URL. Some video extractors need Node.js 22+ or Deno 2.3+ and the `yt-dlp-ejs` package.
 
@@ -49,7 +51,7 @@ To use a compatible existing FFmpeg executable, pass its path as `-Ffmpeg`. The 
 With NSIS 3.11 on PATH, package that build into a Windows setup executable:
 
 ```powershell
-.\build-installer.ps1 -Version 0.2.0
+.\build-installer.ps1 -Version 0.2.1
 ```
 
 Pass `-MakeNsis` with the full path to `makensis.exe` if it is outside PATH. The installer is written to `dist`. The version determines the installed application directory, so use a higher version for an update with a different set of files.
@@ -81,4 +83,4 @@ The tests generate their own files and serve them on localhost. FFmpeg is requir
 
 Starlit DeskDownloader is licensed under the [GNU General Public License v3.0 only](LICENSE).
 
-The Windows x64 0.2.0 package includes the GPL-enabled [Gyan FFmpeg 9.0.2 essentials build](https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2) as a separate executable. Gyan identifies [FFmpeg commit `946fcce07b`](https://github.com/FFmpeg/FFmpeg/commit/946fcce07b) as the source for that build. The SHA-256 of the packaged executable is `3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec`.
+The Windows x64 0.2.1 package includes the GPL-enabled [Gyan FFmpeg 9.0.2 essentials build](https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2) as a separate executable. Gyan identifies [FFmpeg commit `946fcce07b`](https://github.com/FFmpeg/FFmpeg/commit/946fcce07b) as the source for that build. The SHA-256 of the packaged executable is `3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec`.

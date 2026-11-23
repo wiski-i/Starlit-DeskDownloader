@@ -302,17 +302,15 @@ class VideoWindow(QWidget):
         return row
 
     def _restore_download_profile(self) -> None:
-        saved = self.settings.value("downloadFormat", "original", type=str)
-        index = self.format_box.findData(saved)
-        self.format_box.setCurrentIndex(index if index >= 0 else 0)
+        saved = DownloadProfile.read_settings(self.settings)
+        self.format_box.setCurrentIndex(self.format_box.findData(saved.format_id))
         self._refresh_qualities(persist=False)
         self.format_box.currentIndexChanged.connect(self._refresh_qualities)
         self.quality_box.currentIndexChanged.connect(self._save_download_profile)
 
     def _refresh_qualities(self, _index: int = -1, *, persist: bool = True) -> None:
         format_id = self.format_box.currentData()
-        remembered = self.settings.value(f"downloadQuality/{format_id}", "", type=str)
-        profile = DownloadProfile.from_setting(format_id, remembered)
+        profile = DownloadProfile.read_settings(self.settings, format_id)
         self.quality_box.blockSignals(True)
         try:
             self.quality_box.clear()
@@ -332,9 +330,7 @@ class VideoWindow(QWidget):
         return DownloadProfile.from_setting(self.format_box.currentData(), self.quality_box.currentData())
 
     def _save_download_profile(self) -> None:
-        profile = self._download_profile()
-        self.settings.setValue("downloadFormat", profile.format_id)
-        self.settings.setValue(f"downloadQuality/{profile.format_id}", profile.quality)
+        self._download_profile().save_settings(self.settings)
 
     def _create_tray(self) -> None:
         self.tray = QSystemTrayIcon(self.windowIcon(), self)
@@ -460,7 +456,7 @@ class VideoWindow(QWidget):
             return
         self.submit_browser_url(address)
 
-    def submit_browser_url(self, address: str) -> str:
+    def submit_browser_url(self, address: str, *, profile: DownloadProfile | None = None) -> str:
         if self.job or self._quitting:
             return "busy"
         address = download_url(address)
@@ -469,9 +465,8 @@ class VideoWindow(QWidget):
         self.url.setText(address)
         if not self.tray.isVisible():
             self.show_window()
-        self._submit()
-        if self.job:
-            self._notify("background")
+        self._start_download(address, profile if profile is not None else self._download_profile())
+        self._notify("background")
         return "accepted"
 
     def show_window(self) -> None:
@@ -515,6 +510,9 @@ class VideoWindow(QWidget):
             self._show_feedback("invalid_url")
             self.url.setFocus()
             return
+        self._start_download(address, self._download_profile())
+
+    def _start_download(self, address: str, profile: DownloadProfile) -> None:
         self._clear_feedback()
         self.saved_file = None
         self._item_title = ""
@@ -526,7 +524,7 @@ class VideoWindow(QWidget):
         self._set_input_enabled(False)
         self._set_status("detecting", percent=-1)
 
-        job = self.job = DownloadJob(address, self.folder, self, profile=self._download_profile())
+        job = self.job = DownloadJob(address, self.folder, self, profile=profile)
         job.title_changed.connect(self._set_title)
         job.choices_found.connect(self._offer_choices)
         job.progress_changed.connect(self._set_progress)

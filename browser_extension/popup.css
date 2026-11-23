@@ -1,56 +1,36 @@
-:root {
-  color-scheme: dark;
-  font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
-  --background: #171017;
-  --panel: #281926;
-  --outline: #664153;
-  --text: #fff2f8;
-  --muted: #e1c5d3;
-  --accent: #812543;
-  --accent-hover: #963152;
-  --focus: #ffb4cf;
-}
-
-body {
+body.lg-theme {
+  width: 336px;
   margin: 0;
-  width: 320px;
-  background: var(--background);
-  color: var(--text);
+  padding: 8px;
+  color-scheme: dark;
+  font: 14px/1.45 var(--lg-font);
+  background: radial-gradient(ellipse at top right, var(--lg-accent), transparent 66%), #19121d;
+  --lg-padding: 16px;
+  --lg-gap: 12px;
+  --lg-control-height: 44px;
 }
-
-main { padding: 16px; }
-header { display: flex; align-items: center; gap: 8px; }
-h1 { margin: 0; font-size: 17px; }
 
 .page {
-  margin: 16px 0 12px;
-  padding: 10px 12px;
+  margin: 0;
+  padding: 8px 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: var(--panel);
-  border: 1px solid var(--outline);
-  border-radius: 10px;
-  color: var(--muted);
 }
 
-button {
-  margin-top: 4px;
-  width: 100%;
-  min-height: 44px;
-  padding: 8px;
-  border: 1px solid var(--outline);
-  border-radius: 10px;
-  background: var(--accent);
-  color: var(--text);
-  font: inherit;
-  font-weight: 600;
+#profiles {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
 }
 
-button:enabled { cursor: pointer; }
-button:enabled:hover { background: var(--accent-hover); }
-button:disabled { background: var(--panel); color: var(--muted); }
-:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
-#status { margin: 10px 0 0; color: var(--muted); }
-a { display: inline-flex; align-items: center; min-height: 44px; color: var(--focus); }
-[hidden] { display: none; }
+#profiles .lg-label { font-weight: 600; margin-bottom: 4px; }
+#profiles optgroup { background: var(--lg-solid); color: var(--lg-secondary); }
+.hint { margin: 0; font-size: 12px; }
+#send { font-size: 14px; font-weight: 600; }
+#status { margin: 0; font-size: 13px; }
+#status:empty { display: none; }
+#status[data-state="accepted"] { color: var(--lg-success); }
+#status[data-state="busy"], #status[data-state="upgrade_required"] { color: var(--lg-warning); }
+#setup { color: var(--lg-accent-ink); min-height: 32px; align-content: center; }

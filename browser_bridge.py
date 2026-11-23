@@ -7,12 +7,14 @@ import os
 import struct
 import time
 from ctypes import wintypes
+from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import QTimer
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
 from downloads import download_url
+from media_profiles import DownloadProfile
 
 
 HEADER = struct.Struct("<I")
@@ -45,14 +47,45 @@ def decode_message(data: bytes) -> dict:
     return result
 
 
-def request_url(request: dict) -> str | None:
+class RequestError(ValueError):
+    """A browser request failed validation."""
+
+
+@dataclass(frozen=True)
+class BrowserDownload:
+    url: str
+    profile: DownloadProfile | None = None
+
+    def as_message(self) -> dict:
+        message = {"action": "download", "url": self.url}
+        if self.profile is not None:
+            message["profile"] = {"format": self.profile.format_id, "quality": self.profile.quality}
+        return message
+
+
+def parse_download_request(request: dict) -> BrowserDownload:
+    keys = set(request)
     url = request.get("url")
-    if set(request) != {"action", "url"} or request["action"] != "download" or not isinstance(url, str):
-        return None
+    if request.get("action") != "download" or not isinstance(url, str):
+        raise RequestError("invalid_url")
     try:
-        return download_url(url) if len(url.encode("utf-8")) <= 8192 else None
-    except UnicodeEncodeError:
-        return None
+        address = download_url(url) if len(url.encode("utf-8")) <= 8192 else None
+    except UnicodeEncodeError as error:
+        raise RequestError("invalid_url") from error
+    if address is None:
+        raise RequestError("invalid_url")
+    if keys == {"action", "url"}:
+        return BrowserDownload(address)
+    profile = request.get("profile")
+    if keys != {"action", "url", "profile"} or not isinstance(profile, dict) or set(profile) != {"format", "quality"}:
+        raise RequestError("invalid_profile")
+    format_id, quality = profile["format"], profile["quality"]
+    if not isinstance(format_id, str) or not isinstance(quality, str):
+        raise RequestError("invalid_profile")
+    chosen = DownloadProfile(format_id, quality)
+    if chosen != DownloadProfile.from_setting(format_id, quality):
+        raise RequestError("invalid_profile")
+    return BrowserDownload(address, chosen)
 
 
 def socket_name() -> str:
@@ -90,10 +123,13 @@ class BrowserBridge(QLocalServer):
             if available < HEADER.size + size:
                 return
             socket.read(HEADER.size)
-            url = request_url(decode_message(bytes(socket.read(size))))
+            request = parse_download_request(decode_message(bytes(socket.read(size))))
+        except RequestError as error:
+            result = str(error)
         except ValueError:
-            url = None
-        result = self._submit(url) if url is not None else "invalid_url"
+            result = "invalid_url"
+        else:
+            result = self._submit(request.url, profile=request.profile)
         socket.write(encode_message({"status": result}))
         socket.disconnectFromServer()
 
@@ -107,8 +143,8 @@ def connect_to_desktop() -> QLocalSocket | None:
     return None
 
 
-def desktop_response(socket: QLocalSocket, url: str) -> dict:
-    packet = encode_message({"action": "download", "url": url})
+def desktop_response(socket: QLocalSocket, request: BrowserDownload) -> dict:
+    packet = encode_message(request.as_message())
     if socket.write(packet) != len(packet):
         raise OSError("Could not write to the desktop application")
     socket.flush()
