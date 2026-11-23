@@ -4,11 +4,12 @@ const button = document.querySelector("#send");
 const page = document.querySelector("#page");
 const status = document.querySelector("#status");
 const setup = document.querySelector("#setup");
+const unsupportedTab = "Bu sekme gönderilemiyor. Bir web sitesi açıp eklentiyi tekrar aç.";
 
 async function init() {
   const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
   if (!canSend(tab?.url)) {
-    status.textContent = statusText.invalid_url;
+    status.textContent = unsupportedTab;
     return;
   }
 
@@ -29,5 +30,5 @@ async function init() {
 }
 
 init().catch(() => {
-  status.textContent = statusText.invalid_url;
+  status.textContent = unsupportedTab;
 });
