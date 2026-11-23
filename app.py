@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import QPointF, QSettings, Qt, QUrl
 from PySide6.QtGui import (
     QActionGroup, QCloseEvent, QColor, QDesktopServices, QFont, QKeySequence, QPainter, QPaintEvent, QPen, QResizeEvent,
+    QStandardItemModel,
 )
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit,
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from browser_bridge import BrowserBridge, socket_name
 from downloads import ROOT, DownloadJob, download_url
+from media_profiles import FORMATS, DownloadProfile
 from theme import (
     DIALOG_BACKGROUND, FOREGROUND, FRAME_BORDER, THEMES, WINDOW_BACKGROUND, app_icon, mark_pixmap, style_for,
 )
@@ -112,9 +114,10 @@ class VideoWindow(QWidget):
 
         self.setWindowTitle(text("name"))
         self.setWindowIcon(app_icon())
-        self.setMinimumSize(575, 565)
-        self.resize(752, 600)
+        self.setMinimumSize(575, 625)
+        self.resize(752, 660)
         self._build()
+        self._restore_download_profile()
         self._create_tray()
         self._apply_theme(self.settings.value("theme", "glass"))
         self._set_folder_label()
@@ -217,6 +220,7 @@ class VideoWindow(QWidget):
         form.addWidget(self.paste_button)
         form.addWidget(self.download_button)
         layout.addLayout(form)
+        layout.addLayout(self._profile_row())
 
         self.feedback = label(size=13)
         self.feedback.setWordWrap(True)
@@ -268,6 +272,69 @@ class VideoWindow(QWidget):
         self.setTabOrder(self.url, self.paste_button)
         self.setTabOrder(self.paste_button, self.download_button)
         return panel
+
+    def _profile_row(self) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        self.format_box = ChoiceBox(objectName="formatBox")
+        self.quality_box = ChoiceBox(objectName="qualityBox")
+        for box, key in ((self.format_box, "format"), (self.quality_box, "quality")):
+            column = QVBoxLayout()
+            column.setSpacing(5)
+            caption = label(text(key), size=13, bold=True)
+            caption.setBuddy(box)
+            box.setAccessibleName(text(key))
+            box.setMinimumHeight(40)
+            box.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            column.addWidget(caption)
+            column.addWidget(box)
+            row.addLayout(column, stretch=1)
+
+        model: QStandardItemModel = self.format_box.model()
+        last_group = ""
+        self.format_box.setMaxVisibleItems(12)
+        for format_id, output in FORMATS.items():
+            if output.group != last_group:
+                self.format_box.addItem(text(f"format_group_{output.group}"))
+                model.item(self.format_box.count() - 1).setEnabled(False)
+                last_group = output.group
+            self.format_box.addItem(output.label, format_id)
+        return row
+
+    def _restore_download_profile(self) -> None:
+        saved = self.settings.value("downloadFormat", "original", type=str)
+        index = self.format_box.findData(saved)
+        self.format_box.setCurrentIndex(index if index >= 0 else 0)
+        self._refresh_qualities(persist=False)
+        self.format_box.currentIndexChanged.connect(self._refresh_qualities)
+        self.quality_box.currentIndexChanged.connect(self._save_download_profile)
+
+    def _refresh_qualities(self, _index: int = -1, *, persist: bool = True) -> None:
+        format_id = self.format_box.currentData()
+        remembered = self.settings.value(f"downloadQuality/{format_id}", "", type=str)
+        profile = DownloadProfile.from_setting(format_id, remembered)
+        self.quality_box.blockSignals(True)
+        try:
+            self.quality_box.clear()
+            for quality in profile.output.qualities:
+                self.quality_box.addItem(quality.label, quality.key)
+            self.quality_box.setCurrentIndex(self.quality_box.findData(profile.quality))
+        finally:
+            self.quality_box.blockSignals(False)
+        hint = f"quality_hint_{format_id}" if format_id in ("original", "flac", "wav") else (
+            "quality_hint_video" if profile.output.video else "quality_hint_audio"
+        )
+        self.quality_box.setToolTip(text(hint))
+        if persist:
+            self._save_download_profile()
+
+    def _download_profile(self) -> DownloadProfile:
+        return DownloadProfile.from_setting(self.format_box.currentData(), self.quality_box.currentData())
+
+    def _save_download_profile(self) -> None:
+        profile = self._download_profile()
+        self.settings.setValue("downloadFormat", profile.format_id)
+        self.settings.setValue(f"downloadQuality/{profile.format_id}", profile.quality)
 
     def _create_tray(self) -> None:
         self.tray = QSystemTrayIcon(self.windowIcon(), self)
@@ -459,7 +526,7 @@ class VideoWindow(QWidget):
         self._set_input_enabled(False)
         self._set_status("detecting", percent=-1)
 
-        job = self.job = DownloadJob(address, self.folder, self)
+        job = self.job = DownloadJob(address, self.folder, self, profile=self._download_profile())
         job.title_changed.connect(self._set_title)
         job.choices_found.connect(self._offer_choices)
         job.progress_changed.connect(self._set_progress)
@@ -471,7 +538,8 @@ class VideoWindow(QWidget):
         job.start()
 
     def _set_input_enabled(self, enabled: bool) -> None:
-        for control in (self.url, self.paste_button, self.download_button, self.change_button):
+        for control in (self.url, self.paste_button, self.download_button, self.change_button,
+                        self.format_box, self.quality_box):
             control.setEnabled(enabled)
 
     def _set_status(self, key: str, detail: str = "", percent: int | None = None, tone: str = "") -> None:

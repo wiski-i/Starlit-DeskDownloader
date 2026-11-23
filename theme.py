@@ -41,6 +41,8 @@ QLineEdit:disabled { color: #cab4be; }
 QKeySequenceEdit QLineEdit { min-height: 38px; padding: 0 10px; }
 QKeySequenceEdit QLineEdit:focus { border: 2px solid #ffb3ce; }
 QComboBox::drop-down { width: 28px; border: 0; }
+QComboBox#formatBox, QComboBox#qualityBox { combobox-popup: 0; padding-right: 30px; }
+QComboBox:disabled { color: #cab4be; border-color: #4c3945; }
 QComboBox QAbstractItemView {
     color: #fff3f8; background: #2b1924; border: 1px solid #906075;
     selection-background-color: #813149; selection-color: white;

@@ -13,6 +13,9 @@ from urllib.parse import urlsplit
 
 from PySide6.QtCore import QThread, Signal
 
+from media_convert import ConvertError, convert_media
+from media_profiles import DownloadProfile
+
 ROOT = Path(__file__).resolve().parent
 MAX_CHOICES = 25
 
@@ -111,10 +114,11 @@ class DownloadJob(QThread):
     failed = Signal(str)
     cancelled = Signal()
 
-    def __init__(self, url: str, folder: Path, parent=None) -> None:
+    def __init__(self, url: str, folder: Path, parent=None, *, profile: DownloadProfile = DownloadProfile()) -> None:
         super().__init__(parent)
         self.url = url
         self.folder = folder
+        self.profile = profile
         self._stop = Event()
         self._selection: Queue[int] = Queue(maxsize=1)
         self._progress: dict[str, float] = {}
@@ -164,7 +168,10 @@ class DownloadJob(QThread):
 
     def _options(self, stage: Path) -> dict:
         ffmpeg = ffmpeg_binary()
-        return {
+        selector = "bv*+ba/b" if ffmpeg else "b"
+        if self.profile.output.group == "audio":
+            selector = "ba/b"
+        options = {
             "logger": QuietLogger(),
             "quiet": True,
             "noprogress": True,
@@ -178,13 +185,17 @@ class DownloadJob(QThread):
             "retries": 2,
             "fragment_retries": 2,
             "skip_unavailable_fragments": False,
-            "format": "bv*+ba/b" if ffmpeg else "b",
+            "format": selector,
             "ffmpeg_location": ffmpeg,
             "js_runtimes": _js_runtimes(),
             "progress_hooks": [self._download_progress],
             "postprocessor_hooks": [self._postprocess],
             "post_hooks": [lambda path: self._files.append(Path(path))],
         }
+        if self.profile.resolution is not None:
+            options["format_sort"] = [f"res:{self.profile.resolution}"]
+            options["format_sort_force"] = True
+        return options
 
     def _pick_video(self, info: dict) -> dict:
         if "entries" not in info:
@@ -223,8 +234,10 @@ class DownloadJob(QThread):
                 self.title_changed.emit(str(selected.get("title") or ""))
                 if selected.get("_type") in ("url", "url_transparent"):
                     selected = engine.process_ie_result(selected, download=False)
-                if not selected or "entries" in selected or selected.get("vcodec") == "none":
+                if not selected or "entries" in selected:
                     raise DownloadProblem("unsupported")
+                if selected.get("vcodec") == "none" and self.profile.output.group != "audio":
+                    raise DownloadProblem("media_stream_missing" if self.profile.output.video else "unsupported")
                 self.title_changed.emit(str(selected.get("title") or ""))
                 self._parts = len(selected.get("requested_formats") or ()) or 1
                 engine.process_ie_result(selected, download=True)
@@ -240,15 +253,24 @@ class DownloadJob(QThread):
             self.folder.mkdir(parents=True, exist_ok=True)
             with TemporaryDirectory(prefix=".hizliindir-", dir=self.folder) as directory:
                 stage = Path(directory)
-                source = None
+                direct = None
                 if not _is_social_video_page(self.url):
                     from direct_files import download_direct
 
-                    source = download_direct(
+                    direct = download_direct(
                         self.url, stage, self._check_cancellation, self.title_changed.emit, self.progress_changed.emit,
                     )
-                if source is None:
+                convert = self.profile.format_id != "original" and (direct is None or direct.is_media)
+                ffmpeg = ffmpeg_binary() if convert else None
+                if convert and not ffmpeg:
+                    raise DownloadProblem("converter_missing")
+                if direct is None:
                     source = self._download(stage)
+                else:
+                    source = direct.path
+                if ffmpeg:
+                    self.processing.emit()
+                    source = convert_media(source, self.profile, ffmpeg, self._check_cancellation)
                 self._check_cancellation()
                 # Publishing is the commit point. Cancellation after the move keeps the file.
                 target = _publish(source, self.folder)
@@ -263,7 +285,7 @@ class DownloadJob(QThread):
 
 
 def _error_key(error: Exception) -> str:
-    if isinstance(error, DownloadProblem):
+    if isinstance(error, (DownloadProblem, ConvertError)):
         return str(error)
     from direct_files import DirectDownloadError
 

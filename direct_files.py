@@ -4,12 +4,15 @@ import mimetypes
 import os
 import re
 import time
+from dataclasses import dataclass
 from http.client import HTTPException
 from pathlib import Path
 from typing import Callable
 from urllib.error import URLError
 from urllib.parse import unquote, urlsplit
 from urllib.request import Request, urlopen
+
+from media_convert import MEDIA_SUFFIXES
 
 
 PAGE_TYPES = {"text/html", "application/xhtml+xml"}
@@ -24,6 +27,12 @@ SNIFF_BYTES = 1024
 
 class DirectDownloadError(Exception):
     """The connection failed after a direct transfer had started."""
+
+
+@dataclass(frozen=True)
+class DirectDownload:
+    path: Path
+    is_media: bool
 
 
 def _file_name(headers, final_url: str, media_type: str) -> str:
@@ -68,7 +77,7 @@ def download_direct(
     check_cancel: Callable[[], None],
     title_changed: Callable[[str], None],
     progress: Callable[[int, float, int], None],
-) -> Path | None:
+) -> DirectDownload | None:
     """Save a non-page response. Let the video engine handle pages and manifests."""
     request = Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept-Encoding": "identity"})
     try:
@@ -97,6 +106,10 @@ def download_direct(
                 return None
         check_cancel()
         destination = stage / _file_name(headers, final_url, media_type)
+        is_media = (
+            media_type.startswith(("audio/", "video/")) or media_type == "application/ogg"
+            or (media_type in GENERIC_TYPES and destination.suffix.casefold() in MEDIA_SUFFIXES)
+        )
         title_changed(destination.name)
         size_header = headers.get("Content-Length", "")
         total = int(size_header) if size_header.isdecimal() else None
@@ -120,4 +133,4 @@ def download_direct(
                 data = _read(response, CHUNK_SIZE)
         if total is not None and written != total:
             raise DirectDownloadError
-        return destination
+        return DirectDownload(destination, is_media)

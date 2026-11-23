@@ -13,6 +13,7 @@ from zipfile import ZipFile
 from PySide6.QtCore import QCoreApplication, QEventLoop, QTimer
 
 from downloads import DownloadJob, _is_social_video_page, download_url, ffmpeg_binary
+from media_profiles import FORMATS, DownloadProfile
 from windows import DEFAULT_SHORTCUT, Shortcut
 
 
@@ -79,10 +80,25 @@ class DownloadTests(unittest.TestCase):
             "-c:v", "libx264", "-c:a", "aac", str(cls.fixtures / "sample.mp4"),
         ], check=True)
         subprocess.run([
+            cls.ffmpeg, "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=720x1280:r=5",
+            "-t", "0.4", "-c:v", "libx264", str(cls.fixtures / "portrait.mp4"),
+        ], check=True)
+        subprocess.run([
             cls.ffmpeg, "-v", "error", "-i", "sample.mp4", "-map", "0:v",
             "-map", "0:a", "-c", "copy", "-f", "dash", "-adaptation_sets", "id=0,streams=v id=1,streams=a",
             "split.mpd",
         ], check=True, cwd=cls.fixtures)
+        quality_dir = cls.fixtures / "quality"
+        quality_dir.mkdir()
+        subprocess.run([
+            cls.ffmpeg, "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=1920x1080:r=5",
+            "-f", "lavfi", "-i", "sine=frequency=440",
+            "-filter_complex", "[0:v]split=2[full][small];[small]scale=640:360[sd]",
+            "-map", "[full]", "-map", "[sd]", "-map", "1:a", "-t", "1",
+            "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac",
+            "-f", "dash", "-adaptation_sets", "id=0,streams=v id=1,streams=a",
+            "quality.mpd",
+        ], check=True, cwd=quality_dir)
         (cls.fixtures / "two.html").write_text(
             '<html><title>Test videos</title><video src="sample.mp4?first"></video>'
             '<video src="sample.mp4?second"></video></html>', encoding="utf-8",
@@ -102,8 +118,8 @@ class DownloadTests(unittest.TestCase):
         self.addCleanup(output.cleanup)
         self.output = Path(output.name)
 
-    def run_job(self, filename, *, selection=None, cancel=False, cancel_after_ms=None):
-        job = DownloadJob(f"{self.base}/{filename}", self.output)
+    def run_job(self, filename, *, selection=None, cancel=False, cancel_after_ms=None, profile=DownloadProfile()):
+        job = DownloadJob(f"{self.base}/{filename}", self.output, profile=profile)
         results = {"saved": [], "failed": [], "cancelled": [], "choices": []}
         job.saved.connect(results["saved"].append)
         job.failed.connect(results["failed"].append)
@@ -142,6 +158,75 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(len(second["saved"]), 1, second)
         self.assertEqual(original.read_bytes(), b"existing file")
         self.assertEqual(Path(second["saved"][0]).read_bytes(), (self.fixtures / "sample.mp4").read_bytes())
+
+    def test_all_format_quality_choices_produce_decodable_files(self):
+        self.assertEqual(len(FORMATS), 15)
+        for format_id, output in FORMATS.items():
+            for choice in output.qualities:
+                with self.subTest(format=format_id, quality=choice.key):
+                    result = self.run_job("sample.mp4", profile=DownloadProfile(format_id, choice.key))
+                    self.assertEqual(len(result["saved"]), 1, result)
+                    saved = Path(result["saved"][0])
+                    if format_id == "original":
+                        self.assertEqual(saved.read_bytes(), (self.fixtures / "sample.mp4").read_bytes())
+                        continue
+                    self.assertEqual(saved.suffix, f".{format_id}")
+                    info = subprocess.run(
+                        [self.ffmpeg, "-hide_banner", "-i", str(saved)],
+                        capture_output=True, text=True, errors="replace",
+                    ).stderr
+                    if output.video:
+                        self.assertIn("Video:", info)
+                        self.assertIn("160x90", info)
+                    else:
+                        self.assertNotIn("Video:", info)
+                    if format_id == "wav":
+                        self.assertIn(f"pcm_s{choice.key}le", info)
+                    maps = ["-map", "0:a:0"]
+                    if output.video:
+                        maps += ["-map", "0:v:0"]
+                    subprocess.run([self.ffmpeg, "-v", "error", "-i", str(saved), *maps, "-f", "null", "-"], check=True)
+
+    def test_video_cap_uses_short_edge_for_portrait(self):
+        result = self.run_job("portrait.mp4", profile=DownloadProfile("mp4", "480"))
+        self.assertEqual(len(result["saved"]), 1, result)
+        probe = subprocess.run(
+            [self.ffmpeg, "-hide_banner", "-i", result["saved"][0]],
+            capture_output=True, text=True, errors="replace",
+        )
+        self.assertRegex(probe.stderr, r"Video:.*\b480x85[024]\b")
+
+    def test_audio_profile_follows_video_choice_on_a_page(self):
+        result = self.run_job("two.html", selection=1, profile=DownloadProfile("mp3", "320"))
+        self.assertEqual(len(result["choices"]), 2, result)
+        self.assertEqual(len(result["saved"]), 1, result)
+        probe = subprocess.run(
+            [self.ffmpeg, "-hide_banner", "-i", result["saved"][0]],
+            capture_output=True, text=True, errors="replace",
+        )
+        self.assertRegex(probe.stderr, r"Audio: mp3.*\b320 kb/s")
+        self.assertNotIn("Video:", probe.stderr)
+
+    def test_no_audio_is_reported_without_publishing_a_file(self):
+        result = self.run_job("portrait.mp4", profile=DownloadProfile("mp3", "128"))
+        self.assertEqual(result["failed"], ["media_stream_missing"], result)
+        self.assertEqual(list(self.output.iterdir()), [])
+
+    def test_zip_bypasses_selected_audio_conversion(self):
+        result = self.run_job("sample.zip", profile=DownloadProfile("flac", "8"))
+        self.assertEqual(len(result["saved"]), 1, result)
+        self.assertEqual(Path(result["saved"][0]).read_bytes(), (self.fixtures / "sample.zip").read_bytes())
+
+    def test_original_can_prefer_a_stream_resolution(self):
+        for quality, dimensions in (("best", "1920x1080"), ("720", "640x360")):
+            with self.subTest(quality=quality):
+                result = self.run_job("quality/quality.mpd", profile=DownloadProfile("original", quality))
+                self.assertEqual(len(result["saved"]), 1, result)
+                probe = subprocess.run(
+                    [self.ffmpeg, "-hide_banner", "-i", result["saved"][0]],
+                    capture_output=True, text=True, errors="replace",
+                )
+                self.assertIn(dimensions, probe.stderr)
 
     def test_split_video_and_audio_are_merged(self):
         result = self.run_job("split.mpd")
