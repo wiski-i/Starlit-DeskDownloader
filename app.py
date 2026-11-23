@@ -4,8 +4,10 @@ import json
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QSettings, Qt, QUrl
-from PySide6.QtGui import QActionGroup, QCloseEvent, QDesktopServices, QFont, QKeySequence, QResizeEvent
+from PySide6.QtCore import QPointF, QSettings, Qt, QUrl
+from PySide6.QtGui import (
+    QActionGroup, QCloseEvent, QColor, QDesktopServices, QFont, QKeySequence, QPainter, QPaintEvent, QPen, QResizeEvent,
+)
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit,
     QMenu, QMessageBox, QProgressBar, QPushButton, QSizePolicy, QSystemTrayIcon,
@@ -78,6 +80,19 @@ class ElidedLabel(QLabel):
 
     def _update_text(self) -> None:
         self.setText(self.fontMetrics().elidedText(self._full, Qt.TextElideMode.ElideMiddle, self.width()))
+
+
+class ChoiceBox(QComboBox):
+    """Draw the drop-down chevron that the style sheet hides."""
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(QColor(FOREGROUND), 1.6, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        x, y = self.width() - 20, self.height() / 2
+        painter.drawPolyline([QPointF(x - 4, y - 2), QPointF(x, y + 2), QPointF(x + 4, y - 2)])
+        painter.end()
 
 
 class VideoWindow(QWidget):
@@ -166,6 +181,10 @@ class VideoWindow(QWidget):
         self.keys_layout.setContentsMargins(0, 0, 0, 0)
         self.keys_layout.setSpacing(5)
         self._render_shortcut()
+        # Hiding the keycaps must not let the hint slide to the bottom of the hero.
+        keys_policy = self.shortcut_keys.sizePolicy()
+        keys_policy.setRetainSizeWhenHidden(True)
+        self.shortcut_keys.setSizePolicy(keys_policy)
         intro.addWidget(self.shortcut_keys)
         layout.addLayout(intro, stretch=1)
 
@@ -227,7 +246,9 @@ class VideoWindow(QWidget):
         layout.addWidget(self.progress_bar)
 
         choice_row = QHBoxLayout()
-        self.choices = QComboBox()
+        # Keeps Cancel / Show file at their natural width while the picker is hidden.
+        choice_row.addStretch()
+        self.choices = ChoiceBox()
         self.choices.setAccessibleName(text("selecting"))
         self.choices.setMinimumHeight(40)
         self.choices.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
@@ -242,7 +263,6 @@ class VideoWindow(QWidget):
         self.show_file_button = button("show_file", self._show_file, height=40)
         self.show_file_button.hide()
         choice_row.addWidget(self.show_file_button)
-        choice_row.setAlignment(Qt.AlignmentFlag.AlignRight)
         layout.addLayout(choice_row)
         self.setTabOrder(self.url, self.paste_button)
         self.setTabOrder(self.paste_button, self.download_button)
