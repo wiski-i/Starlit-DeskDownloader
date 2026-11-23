@@ -2,6 +2,8 @@
 
 Hızlı İndir is a Windows desktop app for saving direct file links and supported videos from Chrome.
 
+**[Türkçe kullanıcı kılavuzu](docs/kullanim-kilavuzu.md)** · Windows ve Chrome kurulumu, ilk indirme, biçim ve kalite seçimi, sorun giderme.
+
 ## Install on Windows
 
 Run the Windows x64 `Setup.exe` from [GitHub Releases](https://github.com/wiski-i/Starlit-DeskDownloader/releases) when a release is available. Setup installs for the current Windows account, adds **Hızlı İndir** to the Start menu, and registers the local connection for the Chrome extension. Close the app from its tray menu before updating or uninstalling it. You can remove it from **Settings → Apps → Installed apps**. Your download folder and preferences are kept.
