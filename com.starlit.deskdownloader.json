@@ -1,0 +1,7 @@
+{
+  "name": "com.starlit.deskdownloader",
+  "description": "Starlit DeskDownloader browser connection",
+  "path": "HizliIndirBrowserHost.exe",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://jnhpcainmeohhdljgolpbgkhoodcfape/"]
+}

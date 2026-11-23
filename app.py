@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
+from browser_bridge import BrowserBridge, socket_name
 from downloads import ROOT, DownloadJob, download_url
 from theme import (
     DIALOG_BACKGROUND, FOREGROUND, FRAME_BORDER, THEMES, WINDOW_BACKGROUND, app_icon, mark_pixmap, style_for,
@@ -390,12 +391,21 @@ class VideoWindow(QWidget):
             self._show_feedback("capture_missing")
             self.url.setFocus()
             return
+        self.submit_browser_url(address)
+
+    def submit_browser_url(self, address: str) -> str:
+        if self.job or self._quitting:
+            return "busy"
+        address = download_url(address)
+        if not address:
+            return "invalid_url"
         self.url.setText(address)
         if not self.tray.isVisible():
             self.show_window()
         self._submit()
         if self.job:
             self._notify("background")
+        return "accepted"
 
     def show_window(self) -> None:
         if self.isMinimized():
@@ -587,11 +597,14 @@ def main() -> int:
     settings = QSettings("HizliIndir", "HizliIndir")
     capture = BrowserCapture(ROOT / "browser_address.ps1", application)
     window = VideoWindow(application, settings, capture)
+    bridge = BrowserBridge(window.submit_browser_url, application)
+    bridge.listen(socket_name())
     capture.captured.connect(window.handle_capture)
     window.set_shortcut_available(capture.start(window.shortcut))
     instance.reopen_requested.connect(window.show_window)
     application.aboutToQuit.connect(capture.stop)
     application.aboutToQuit.connect(instance.close)
+    application.aboutToQuit.connect(bridge.close)
     window.show()
     return application.exec()
 

@@ -22,6 +22,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'The application icon could not be generated.' }
     & $Python -m PyInstaller --noconfirm --workpath build/pyinstaller --distpath dist (Join-Path $PSScriptRoot 'HizliIndir.spec')
     if ($LASTEXITCODE -ne 0) { throw 'Packaging failed.' }
+    Copy-Item -LiteralPath 'com.starlit.deskdownloader.json' -Destination 'dist/HizliIndir'
 } finally {
     Pop-Location
 }

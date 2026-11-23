@@ -7,7 +7,7 @@ from PyInstaller.utils.hooks import collect_all
 project = Path(SPECPATH)
 data_files = [(str(project / name), ".") for name in ("copy_tr.json", "browser_address.ps1")]
 binary_files = [(str(project / "build" / "ffmpeg.exe"), "tools")]
-hidden_imports = []
+hidden_imports = ["native_host"]
 
 packages = ["yt_dlp"]
 if find_spec("yt_dlp_ejs") is not None:
@@ -27,6 +27,7 @@ analysis = Analysis(
     datas=data_files,
     binaries=binary_files,
     hiddenimports=hidden_imports,
+    excludes=["imageio_ffmpeg"],  # build.ps1 supplies the executable in tools/
 )
 
 # Qt imports the Windows ICU ABI. A same-named ICU from PATH can shadow it.
@@ -47,4 +48,17 @@ executable = EXE(
     icon=str(project / "build" / "HizliIndir.ico"),
 )
 
-distribution = COLLECT(executable, analysis.binaries, analysis.datas, name="HizliIndir")
+# Chrome needs a separate entry point with stdin and stdout. Both programs use the same Qt and Python DLLs.
+host_analysis = Analysis([str(project / "native_host.py")], excludes=["imageio_ffmpeg"])
+host = EXE(
+    archive,
+    host_analysis.scripts,
+    [],
+    exclude_binaries=True,
+    name="HizliIndirBrowserHost",
+    console=True,
+    hide_console="hide-early",
+    icon=str(project / "build" / "HizliIndir.ico"),
+)
+
+distribution = COLLECT(executable, host, analysis.binaries, analysis.datas, name="HizliIndir")

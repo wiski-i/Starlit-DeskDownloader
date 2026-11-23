@@ -2,6 +2,12 @@
 
 Hızlı İndir is a Windows desktop app for saving direct file links and supported videos from Chrome.
 
+## Install on Windows
+
+Run the Windows x64 `Setup.exe` from [GitHub Releases](https://github.com/wiski-i/Starlit-DeskDownloader/releases) when a release is available. Setup installs for the current Windows account, adds **Hızlı İndir** to the Start menu, and registers the local connection for the Chrome extension. Close the app from its tray menu before updating or uninstalling it. You can remove it from **Settings → Apps → Installed apps**. Your download folder and preferences are kept.
+
+The development Chrome extension is a separate ZIP. Extract it into a folder you plan to keep, then use **Load unpacked** on `chrome://extensions` and select that folder. Windows Setup registers the matching host automatically. The manual registry step below is only for testing a portable build.
+
 ## Open the packaged app
 
 Double-click `dist/HizliIndir/HizliIndir.exe`. Keep the `_internal` folder alongside the executable if you move it.
@@ -38,6 +44,29 @@ python -m pip install pyinstaller
 
 To use a compatible existing FFmpeg executable, pass its path as `-Ffmpeg`. The build places it inside the Windows package.
 
+With NSIS 3.11 on PATH, package that build into a Windows setup executable:
+
+```powershell
+.\build-installer.ps1 -Version 0.1.0
+```
+
+Pass `-MakeNsis` with the full path to `makensis.exe` if it is outside PATH. The installer is written to `dist`. The version determines the installed application directory, so use a higher version for an update with a different set of files.
+
+## Test the Chrome extension on Windows
+
+The development extension lives in `browser_extension`. Its popup sends the active tab, and **Bu bağlantıyı Hızlı İndir’e gönder** sends a link from Chrome’s context menu. The desktop app opens if needed and uses its current download folder. If another download is in progress, the extension reports that the app is busy.
+
+1. Build the Windows package.
+2. In `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the `browser_extension` folder.
+3. From the repository root, register the native host for the current Windows account:
+
+   ```powershell
+   $manifest = (Resolve-Path '.\dist\HizliIndir\com.starlit.deskdownloader.json').Path
+   reg add 'HKCU\Software\Google\Chrome\NativeMessagingHosts\com.starlit.deskdownloader' /ve /t REG_SZ /d $manifest /f
+   ```
+
+To undo the development registration, remove that host's key and remove the unpacked extension in Chrome. The host manifest, `HizliIndirBrowserHost.exe`, `HizliIndir.exe`, and `_internal` must stay in the same directory. The public key in the development manifest keeps its extension ID stable. A future store build must register its own ID in `allowed_origins` if it differs.
+
 ## Run the download integration tests
 
 ```powershell
@@ -49,3 +78,5 @@ The tests generate their own files and serve them on localhost. FFmpeg is requir
 ## License
 
 Starlit DeskDownloader is licensed under the [GNU General Public License v3.0 only](LICENSE).
+
+The Windows x64 0.1.0 package includes the GPL-enabled [Gyan FFmpeg 9.0.2 essentials build](https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2) as a separate executable. Gyan identifies [FFmpeg commit `946fcce07b`](https://github.com/FFmpeg/FFmpeg/commit/946fcce07b) as the source for that build. The SHA-256 of the packaged executable is `3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec`.
