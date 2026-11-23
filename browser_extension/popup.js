@@ -51,8 +51,8 @@ async function init() {
     return;
   }
 
-  page.textContent = new URL(tab.url).hostname;
-  page.title = page.textContent;
+  page.textContent = tab.url;
+  page.title = tab.url;
   page.hidden = false;
   status.textContent = "İndirme seçenekleri yükleniyor…";
   const catalog = await getProfiles();

@@ -13,10 +13,15 @@ body.lg-theme {
 .page {
   margin: 0;
   padding: 8px 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-block-size: 112px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  direction: ltr;
+  unicode-bidi: isolate;
+  user-select: text;
 }
+
+.page:focus-visible { outline: 2px solid var(--lg-focus); outline-offset: 3px; }
 
 #profiles {
   display: grid;

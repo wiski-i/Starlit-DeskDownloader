@@ -18,7 +18,7 @@ Double-click `dist/HizliIndir/HizliIndir.exe`. Keep the `_internal` folder along
 
 You can also paste any HTTP or HTTPS file URL into the app. Select **Değiştir** to choose another destination. To change the global shortcut, open **Ayarlar → Klavye kısayolu**, press the combination, and select **Kaydet**. Closing the window keeps the shortcut active in the notification area. Open the executable again or click its notification icon to bring back the window. To stop the app, select **Çıkış** from the notification icon menu.
 
-Pick **Biçim** and **Kalite** before downloading. The keyboard shortcut and Chrome’s right-click menu use the last desktop selection. With Windows Setup 0.2.1 and Chrome extension 0.2.0, the Chrome toolbar popup starts with your desktop settings and lets you override them for a single download. If you already loaded the unpacked extension from the updated folder, use **Reload** on its card at `chrome://extensions`.
+Pick **Biçim** and **Kalite** before downloading. The keyboard shortcut and Chrome’s right-click menu use the last desktop selection. With Windows Setup 0.2.1 and Chrome extension 0.2.1, the Chrome toolbar popup displays the full tab address, starts with your desktop settings, and lets you override them for a single download. If you already loaded the unpacked extension from the updated folder, use **Reload** on its card at `chrome://extensions`.
 
 **Orijinal** keeps direct files intact and can prefer a resolution on video pages. Video conversion can lower the source resolution, and the quality label is a ceiling. Audio bit rates apply to the encoded output. For WAV the quality setting controls PCM bit depth. For FLAC it controls lossless compression. Ordinary files such as ZIP and PDF are always saved as received.
 
