@@ -30,9 +30,14 @@ class ExtensionSetupTests(unittest.TestCase):
         import extension_setup
         with patch.object(extension_setup,'chrome_command',return_value=None):
             self.assertFalse(extension_setup.open_chrome_extensions())
-        with patch.object(extension_setup,'chrome_command',return_value=['chrome','chrome://extensions/']), patch.object(extension_setup.subprocess,'Popen') as launch:
+        with patch.object(extension_setup.sys,'platform','win32'), patch.object(extension_setup,'chrome_command',return_value=['chrome','chrome://extensions/']), patch.object(extension_setup.subprocess,'Popen') as launch:
             self.assertTrue(extension_setup.open_chrome_extensions())
             self.assertEqual(launch.call_args.args[0],['chrome','chrome://extensions/'])
+        with patch.object(extension_setup.sys,'platform','darwin'),patch.object(extension_setup,'chrome_command',return_value=['/usr/bin/open','-a','Google Chrome','chrome://extensions/']),patch.object(extension_setup.subprocess,'run') as launch:
+            self.assertTrue(extension_setup.open_chrome_extensions())
+            self.assertEqual(launch.call_args.args[0][0],'/usr/bin/open')
+            launch.side_effect=extension_setup.subprocess.CalledProcessError(1,['open'])
+            self.assertFalse(extension_setup.open_chrome_extensions())
 
     def test_mac_registration_uses_host_beside_frozen_gui(self):
         import extension_setup
