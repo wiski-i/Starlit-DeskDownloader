@@ -154,7 +154,7 @@ class BridgeTests(unittest.TestCase):
             executable = str(Path(directory) / 'HizliIndir.app/Contents/MacOS/HizliIndirBrowserHost')
             with patch.object(native_host, 'sys', SimpleNamespace(platform='darwin', executable=executable, frozen=True)), patch.object(Path, 'home', return_value=Path(directory)):
                 manifest = json.loads(native_host.register_browser_host().read_text(encoding='utf-8'))
-                self.assertEqual(manifest['path'], executable)
+                self.assertEqual(manifest['path'], str(Path(executable).resolve()))
 
 
 if __name__ == '__main__':
