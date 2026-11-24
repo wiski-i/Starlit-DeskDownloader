@@ -28,3 +28,5 @@ Gerçek platform doğrulaması için başarılı ilgili Actions çalışmasını
 Canlı sitelerin tamamı yerel fixture testleriyle doğrulanmış sayılmaz.
 Üçüncü taraf binary ayrıntıları paketteki THIRD-PARTY.txt dosyasındadır.
 Ayrıntılı talimatlar README.md ve docs/kullanim-kilavuzu.md içindedir.
+
+Chrome Extension uygulamanin icindedir. Extension Kur -> Chrome’u ac klasor yolunu kopyalar ve uzantilar sayfasini acar. Gelistirici modu -> Paketlenmemis oge yukle -> yolu yapistirip klasoru sec. Son onay Chrome’da kullanicidadir.

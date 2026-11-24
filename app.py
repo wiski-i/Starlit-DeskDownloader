@@ -1,6 +1,7 @@
 """Native desktop interface and tray workflow."""
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from browser_bridge import BrowserBridge, socket_name
 from downloads import ROOT, DownloadJob, download_url
+from extension_setup import prepare_extension, register_native_host, open_chrome_extensions
 from media_profiles import FORMATS, DownloadProfile
 from theme import (
     DIALOG_BACKGROUND, FOREGROUND, FRAME_BORDER, THEMES, WINDOW_BACKGROUND, app_icon, mark_pixmap, style_for,
@@ -148,6 +150,7 @@ class VideoWindow(QWidget):
         toolbar.addWidget(logo)
         toolbar.addWidget(label(text("name"), size=18, bold=True))
         toolbar.addStretch()
+        toolbar.addWidget(button("extension_install", self._extension_setup, "quiet", height=38))
         settings_button = button("settings", variant="quiet", height=38)
         settings_button.setMenu(settings_menu)
         toolbar.addWidget(settings_button)
@@ -375,6 +378,47 @@ class VideoWindow(QWidget):
             pass
         self.show_window()
         self._show_feedback("folder_error")
+
+    def _extension_setup(self) -> None:
+        try:
+            folder = prepare_extension()
+            connected = register_native_host()
+        except (OSError, subprocess.SubprocessError):
+            self._show_feedback("extension_error")
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle(text("extension_install"))
+        dialog.setMinimumWidth(490)
+        layout = QVBoxLayout(dialog)
+        instruction = label(text("extension_steps"))
+        instruction.setWordWrap(True)
+        layout.addWidget(instruction)
+        path = QLineEdit(str(folder), readOnly=True)
+        path.setAccessibleName(text("extension_folder"))
+        path.selectAll()
+        layout.addWidget(path)
+        if not connected:
+            hint = label(text("extension_source_hint"), muted=True)
+            hint.setWordWrap(True)
+            layout.addWidget(hint)
+        feedback = label(muted=True)
+        feedback.setWordWrap(True)
+        layout.addWidget(feedback)
+        actions = QHBoxLayout()
+
+        def open_browser() -> None:
+            self.application.clipboard().setText(str(folder))
+            if open_chrome_extensions():
+                dialog.accept()
+            else:
+                feedback.setText(text("extension_chrome_missing"))
+
+        actions.addWidget(button("extension_open", open_browser, "primary"))
+        actions.addWidget(button("extension_copy", lambda: self.application.clipboard().setText(str(folder))))
+        actions.addWidget(button("open_folder", lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))))
+        actions.addWidget(button("close", dialog.accept, "quiet"))
+        layout.addLayout(actions)
+        dialog.exec()
 
     def _show_file(self) -> None:
         if self.saved_file and not show_file(self.saved_file):

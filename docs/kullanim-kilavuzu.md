@@ -19,7 +19,13 @@ Releases sayfasında hazır paket bulunmuyorsa uygulamayı [kaynak koddan çalı
 
 Paket ad-hoc imzalidir; Apple Developer ID ve noter onayi yoktur. macOS uygulamayi engellerse Sistem Ayarlari > Gizlilik ve Guvenlik bolumundeki acma secenegini kullanman gerekebilir. Global kisayolun tarayici adresini okuyabilmesi icin Otomasyon izni istenebilir. Izin verilmezse baglantiyi yapistir veya Chrome panelini kullan. Tamamlanan dosya Finder'da secilir.
 
-## Chrome eklentisini kur
+## Uygulama içinden Extension kur
+
+Masaüstü uygulamasındaki **Extension Kur** düğmesine bas. Extension dosyaları paketin içinde gelir; ayrı ZIP indirmen gerekmez. Uygulama dosyaları sürüm yükseltmelerinden etkilenmeyen sabit bir klasöre hazırlar ve paketli uygulamanın Chrome bağlantısını kaydeder.
+
+**Chrome’u aç** düğmesi klasör yolunu panoya kopyalar ve `chrome://extensions/` sayfasını açar. **Geliştirici modu → Paketlenmemiş öğe yükle** seçeneğine bas, klasör alanına yolu yapıştır ve seç. Chrome bu son onayı senden ister. Aynı ekranda **Yolu kopyala** ve **Klasörü aç** da bulunur. Güncelleme sonrası Extension Kur düğmesi dosyaları aynı yerde yeniler; Chrome kartından Yeniden Yükle seçeneğini kullan.
+
+## Chrome Extension ZIP ile kur
 
 1. Önce masaüstü uygulamasını Windows Setup veya macOS DMG ile kur. Chrome içinden biçim ve kalite seçmek için **Windows 0.2.1 veya üzeri** gerekir.
 2. Release varlıklarındaki `HizliIndir-Chrome-…zip` dosyasını kalıcı bir klasöre çıkar. Kaynak kodu indirdiysen doğrudan `browser_extension` klasörünü kullanabilirsin.

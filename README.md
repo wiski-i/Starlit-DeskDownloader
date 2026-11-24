@@ -115,3 +115,7 @@ Starlit DeskDownloader is licensed under the [GNU General Public License v3.0 on
 The Windows x64 0.2.1 package includes the GPL-enabled [Gyan FFmpeg 9.0.2 essentials build](https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2) as a separate executable. Gyan identifies [FFmpeg commit `946fcce07b`](https://github.com/FFmpeg/FFmpeg/commit/946fcce07b) as the source for that build. The SHA-256 of the packaged executable is `3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec`.
 
 New builds include `THIRD-PARTY.txt` identifying the actual bundled FFmpeg version, provider and SHA-256. Default build scripts use the verified imageio-ffmpeg binary; supplying another binary changes its distribution obligations. The inventory alone is not a redistribution compliance certificate.
+
+## Bundled Chrome Extension setup
+
+The desktop app includes the Extension files. Select **Extension Kur**: it prepares a stable user-data folder and registers the current packaged native host. **Chrome’u aç** copies that folder path and opens Google Chrome at `chrome://extensions/`. Enable Developer mode, choose **Load unpacked**, paste the folder path and confirm. The app can also open the folder or copy its path. The stable location survives application upgrades. Chrome requires this user confirmation for unpacked extensions; the app does not change enterprise policies or browser security settings.

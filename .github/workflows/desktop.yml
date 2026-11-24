@@ -61,6 +61,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./build.ps1 -Python python
+      - name: Verify bundled Windows Extension
+        if: runner.os == 'Windows'
+        run: python -c "import json; from pathlib import Path; p=Path('dist/HizliIndir/_internal/browser_extension'); m=json.loads((p/'manifest.json').read_text()); assert m['version']=='0.2.2'; assert all((p/n).is_file() for n in ['bridge.js','worker.js','popup.html','popup.js'])"
       - name: Test packaged Windows Native Messaging host
         if: runner.os == 'Windows'
         run: python tests/check_packaged_host.py dist/HizliIndir/HizliIndirBrowserHost.exe
@@ -92,6 +95,7 @@ jobs:
         shell: bash
         run: |
           test -x dist/HizliIndir.app/Contents/MacOS/HizliIndir
+          test -f dist/HizliIndir.app/Contents/Resources/browser_extension/manifest.json
           test -x dist/HizliIndir.app/Contents/MacOS/HizliIndirBrowserHost
           codesign --verify --deep --strict --verbose=2 dist/HizliIndir.app
           file dist/HizliIndir.app/Contents/MacOS/HizliIndir
@@ -114,7 +118,7 @@ jobs:
         run: |
           mkdir -p dist
           version=$(cat version.txt | tr -d '\r\n')
-          (cd browser_extension && zip -r "../dist/Starlit-DeskDownloader-Chrome-$version.zip" .)
+          (cd browser_extension && zip -r "../dist/Starlit-DeskDownloader-Extension-$version.zip" .)
           (cd dist && sha256sum *.zip > SHA256SUMS)
       - name: Upload checked distribution
         uses: actions/upload-artifact@v7

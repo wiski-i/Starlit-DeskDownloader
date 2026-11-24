@@ -15,6 +15,7 @@ if is_windows:
     names.append("browser_address.ps1")
 data_files = [(str(project / name), ".") for name in names]
 data_files.append((str(project / "build" / "THIRD-PARTY.txt"), "."))
+data_files.append((str(project / "browser_extension"), "browser_extension"))
 binary_files = [(str(project / "build" / ffmpeg), "tools")]
 hidden_imports = ["native_host"]
 
