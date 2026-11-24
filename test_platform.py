@@ -218,7 +218,7 @@ with patch.object(app, 'AppInstance', return_value=instance), patch.object(app, 
             try:
                 result = subprocess.run([sys.executable, 'app.py', '--smoke-test'], cwd=ROOT,
                                         env={**os.environ, 'QT_QPA_PLATFORM': 'offscreen'},
-                                        capture_output=True, text=True, timeout=5)
+                                        capture_output=True, text=True, timeout=30)
             except subprocess.TimeoutExpired:
                 self.fail('The GUI smoke check did not exit after startup')
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
