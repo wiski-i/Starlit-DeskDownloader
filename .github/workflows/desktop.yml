@@ -2,7 +2,7 @@ name: Desktop tests and packages
 
 on:
   push:
-    branches: [main, 'codex/**']
+    branches: [main]
     tags: ['v*']
   pull_request:
   workflow_dispatch:

@@ -40,6 +40,10 @@ def main():
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER,HOST): pass
     except FileNotFoundError: pass
     else: raise RuntimeError('Existing host registration; nothing changed')
+    executable=str(ROOT/'dist/HizliIndir/HizliIndir.exe').replace("'","''")
+    process_query="Get-CimInstance Win32_Process -Filter \"Name='HizliIndir.exe'\" | Where-Object { $_.ExecutablePath -eq '"+executable+"' }"
+    prior_process=subprocess.run(['powershell','-NoProfile','-Command',process_query+' | Select-Object -ExpandProperty ProcessId'],capture_output=True,text=True,check=True,timeout=15)
+    assert not prior_process.stdout.strip(), 'Existing packaged application; nothing changed'
     with tempfile.TemporaryDirectory(prefix='chrome-native-',dir=ROOT/'.deps') as directory:
         folder=Path(directory)
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER,SETTINGS) as key:
@@ -53,7 +57,7 @@ def main():
         context=None
         try:
             with sync_playwright() as p:
-                context=p.chromium.launch_persistent_context(str(folder/'profile'),channel='chromium',headless=True,args=['--disable-extensions-except='+str(ROOT/'browser_extension'),'--load-extension='+str(ROOT/'browser_extension')])
+                context=p.chromium.launch_persistent_context(str(folder/'profile'),channel='chromium',headless=True,args=["--enable-unsafe-extension-debugging",'--disable-extensions-except='+str(ROOT/'browser_extension'),'--load-extension='+str(ROOT/'browser_extension')])
                 worker=context.service_workers[0] if context.service_workers else context.wait_for_event('serviceworker')
                 assert 'jnhpcainmeohhdljgolpbgkhoodcfape' in worker.url
                 profiles=worker.evaluate("async()=>await chrome.runtime.sendNativeMessage('com.starlit.deskdownloader',{action:'get_profiles'})")
@@ -64,10 +68,19 @@ def main():
                 # Keep the fixture URL active without letting Chromium download it.
                 page.route(url,lambda route:route.fulfill(status=200,content_type='text/html',body='<html><title>Fixture</title></html>'))
                 page.goto(url)
-                worker.evaluate('async()=>await chrome.action.openPopup()')
+                page.bring_to_front()
                 cdp=context.new_cdp_session(page)
-                targets=cdp.send('Target.getTargets')['targetInfos']
-                popup=next(x for x in targets if x['url'].endswith('/popup.html'))
+                tab=next(x for x in cdp.send('Target.getTargets',{'filter':[{'type':'tab'}]})['targetInfos'] if x['url']==url)
+                browser_cdp=context.browser.new_browser_cdp_session()
+                browser_cdp.send('Extensions.triggerAction',{'id':'jnhpcainmeohhdljgolpbgkhoodcfape','targetId':tab['targetId']})
+                page.wait_for_timeout(500)
+                deadline=time.monotonic()+10
+                popup=None
+                while popup is None and time.monotonic()<deadline:
+                    targets=cdp.send('Target.getTargets')['targetInfos']
+                    popup=next((x for x in targets if x['url'].endswith('/popup.html')),None)
+                    page.wait_for_timeout(100)
+                assert popup, targets
                 session=cdp.send('Target.attachToTarget',{'targetId':popup['targetId'],'flatten':False})['sessionId']
                 replies={}
                 cdp.on('Target.receivedMessageFromTarget',lambda event: replies.update({json.loads(event['message']).get('id'):json.loads(event['message'])}))
@@ -98,11 +111,13 @@ def main():
                 context.close()
                 context=None
         finally:
-            if context: context.close()
+            if context:
+                try: context.close()
+                except Exception: pass
             server.shutdown()
             server.server_close()
             # All fixture downloads completed before stopping our own packaged process.
-            command="Get-CimInstance Win32_Process -Filter \"Name='HizliIndir.exe'\" | Where-Object { $_.ExecutablePath -eq '"+str(ROOT/'dist/HizliIndir/HizliIndir.exe')+"' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+            command="Get-CimInstance Win32_Process -Filter \"Name='HizliIndir.exe'\" | Where-Object { $_.ExecutablePath -eq '"+executable+"' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
             subprocess.run(['powershell','-NoProfile','-Command',command],check=True,timeout=15)
             winreg.DeleteKey(winreg.HKEY_CURRENT_USER,HOST)
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER,SETTINGS,0,winreg.KEY_SET_VALUE) as key:
