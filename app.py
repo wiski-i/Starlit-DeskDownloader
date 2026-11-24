@@ -4,11 +4,12 @@ import json
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QPointF, QSettings, Qt, QUrl
+from PySide6.QtCore import QPointF, QSettings, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QActionGroup, QCloseEvent, QColor, QDesktopServices, QFont, QKeySequence, QPainter, QPaintEvent, QPen, QResizeEvent,
     QStandardItemModel,
 )
+from PySide6.QtNetwork import QLocalServer
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QKeySequenceEdit, QLabel, QLineEdit,
     QMenu, QMessageBox, QProgressBar, QPushButton, QSizePolicy, QSystemTrayIcon,
@@ -21,7 +22,7 @@ from media_profiles import FORMATS, DownloadProfile
 from theme import (
     DIALOG_BACKGROUND, FOREGROUND, FRAME_BORDER, THEMES, WINDOW_BACKGROUND, app_icon, mark_pixmap, style_for,
 )
-from windows import (
+from desktop import (
     DEFAULT_SHORTCUT, AppInstance, BrowserCapture, Shortcut, downloads_folder, set_title_bar_colors, show_file,
 )
 
@@ -655,16 +656,30 @@ class VideoWindow(QWidget):
 def main() -> int:
     application = QApplication(sys.argv)
     application.setApplicationName(text("name"))
-    application.setFont(QFont("Segoe UI", 10))
+    if sys.platform == "win32":
+        application.setFont(QFont("Segoe UI", 10))
     application.setQuitOnLastWindowClosed(False)
-    instance = AppInstance(application)
+    try:
+        instance = AppInstance(application)
+    except OSError as error:
+        print(str(error), file=sys.stderr)
+        return 1
     if instance.is_secondary:
-        return 0
+        return 1 if "--smoke-test" in sys.argv else 0
     settings = QSettings("HizliIndir", "HizliIndir")
     capture = BrowserCapture(ROOT / "browser_address.ps1", application)
     window = VideoWindow(application, settings, capture)
     bridge = BrowserBridge(window.submit_browser_url, application)
-    bridge.listen(socket_name())
+    name = socket_name()
+    QLocalServer.removeServer(name)
+    if not bridge.listen(name):
+        print(bridge.errorString(), file=sys.stderr)
+        bridge.close()
+        capture.stop()
+        instance.close()
+        window.tray.hide()
+        window.deleteLater()
+        return 1
     capture.captured.connect(window.handle_capture)
     window.set_shortcut_available(capture.start(window.shortcut))
     instance.reopen_requested.connect(window.show_window)
@@ -672,6 +687,8 @@ def main() -> int:
     application.aboutToQuit.connect(instance.close)
     application.aboutToQuit.connect(bridge.close)
     window.show()
+    if "--smoke-test" in sys.argv:
+        QTimer.singleShot(250, application.quit)
     return application.exec()
 
 

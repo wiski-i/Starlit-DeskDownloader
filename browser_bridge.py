@@ -5,8 +5,8 @@ import hashlib
 import json
 import os
 import struct
+import sys
 import time
-from ctypes import wintypes
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -68,6 +68,8 @@ def parse_download_request(request: dict) -> BrowserDownload:
     url = request.get("url")
     if request.get("action") != "download" or not isinstance(url, str):
         raise RequestError("invalid_url")
+    if any(ord(character) <= 32 or ord(character) == 127 for character in url):
+        raise RequestError("invalid_url")
     try:
         address = download_url(url) if len(url.encode("utf-8")) <= 8192 else None
     except UnicodeEncodeError as error:
@@ -89,11 +91,17 @@ def parse_download_request(request: dict) -> BrowserDownload:
 
 
 def socket_name() -> str:
-    session = wintypes.DWORD()
-    if not ctypes.windll.kernel32.ProcessIdToSessionId(os.getpid(), ctypes.byref(session)):
-        raise OSError("Could not determine the Windows session")
+    if sys.platform == "win32":
+        from ctypes import wintypes
+
+        session = wintypes.DWORD()
+        if not ctypes.windll.kernel32.ProcessIdToSessionId(os.getpid(), ctypes.byref(session)):
+            raise OSError("Could not determine the Windows session")
+        identity = session.value
+    else:
+        identity = os.getuid()
     user = hashlib.sha256(os.path.normcase(str(Path.home())).encode("utf-8")).hexdigest()[:24]
-    return f"HizliIndir.Browser.{session.value}.{user}"
+    return f"HizliIndir.Browser.{identity}.{user}"
 
 
 class BrowserBridge(QLocalServer):
@@ -129,7 +137,10 @@ class BrowserBridge(QLocalServer):
         except ValueError:
             result = "invalid_url"
         else:
-            result = self._submit(request.url, profile=request.profile)
+            try:
+                result = self._submit(request.url, profile=request.profile)
+            except Exception:
+                result = "desktop_unavailable"
         socket.write(encode_message({"status": result}))
         socket.disconnectFromServer()
 

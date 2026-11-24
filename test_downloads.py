@@ -14,7 +14,7 @@ from PySide6.QtCore import QCoreApplication, QEventLoop, QTimer
 
 from downloads import DownloadJob, _is_social_video_page, download_url, ffmpeg_binary
 from media_profiles import FORMATS, DownloadProfile
-from windows import DEFAULT_SHORTCUT, Shortcut
+from shortcuts import DEFAULT_SHORTCUT, Shortcut
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -41,6 +41,14 @@ class QuietHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/octet-stream")
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Content-Range", "bytes 0-3/128")
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        if self.path == "/bom-page":
+            data = b"\xef\xbb\xbf  <html><title>BOM video</title><video src=\"sample.mp4\"></video></html>"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
             return
@@ -75,23 +83,23 @@ class DownloadTests(unittest.TestCase):
         cls.addClassCleanup(fixtures.cleanup)
         cls.fixtures = Path(fixtures.name)
         subprocess.run([
-            cls.ffmpeg, "-v", "error", "-f", "lavfi", "-i", "color=c=purple:s=160x90:r=10",
+            cls.ffmpeg, "-nostdin", "-v", "error", "-f", "lavfi", "-i", "color=c=purple:s=160x90:r=10",
             "-f", "lavfi", "-i", "sine=frequency=440", "-t", "2",
             "-c:v", "libx264", "-c:a", "aac", str(cls.fixtures / "sample.mp4"),
         ], check=True)
         subprocess.run([
-            cls.ffmpeg, "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=720x1280:r=5",
+            cls.ffmpeg, "-nostdin", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=720x1280:r=5",
             "-t", "0.4", "-c:v", "libx264", str(cls.fixtures / "portrait.mp4"),
         ], check=True)
         subprocess.run([
-            cls.ffmpeg, "-v", "error", "-i", "sample.mp4", "-map", "0:v",
+            cls.ffmpeg, "-nostdin", "-v", "error", "-i", "sample.mp4", "-map", "0:v",
             "-map", "0:a", "-c", "copy", "-f", "dash", "-adaptation_sets", "id=0,streams=v id=1,streams=a",
             "split.mpd",
         ], check=True, cwd=cls.fixtures)
         quality_dir = cls.fixtures / "quality"
         quality_dir.mkdir()
         subprocess.run([
-            cls.ffmpeg, "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=1920x1080:r=5",
+            cls.ffmpeg, "-nostdin", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=1920x1080:r=5",
             "-f", "lavfi", "-i", "sine=frequency=440",
             "-filter_complex", "[0:v]split=2[full][small];[small]scale=640:360[sd]",
             "-map", "[full]", "-map", "[sd]", "-map", "1:a", "-t", "1",
@@ -149,6 +157,11 @@ class DownloadTests(unittest.TestCase):
         self.assertFalse(list(self.output.glob(".hizliindir-*")), results)
         return results
 
+    def test_bom_octet_stream_page_is_resolved_as_video(self):
+        result = self.run_job("bom-page")
+        self.assertEqual(len(result["saved"]), 1, result)
+        self.assertEqual(Path(result["saved"][0]).suffix, ".mp4")
+
     def test_direct_download_keeps_an_existing_file(self):
         first = self.run_job("sample.mp4")
         self.assertEqual(len(first["saved"]), 1, first)
@@ -172,7 +185,7 @@ class DownloadTests(unittest.TestCase):
                         continue
                     self.assertEqual(saved.suffix, f".{format_id}")
                     info = subprocess.run(
-                        [self.ffmpeg, "-hide_banner", "-i", str(saved)],
+                        [self.ffmpeg, "-nostdin", "-hide_banner", "-i", str(saved)],
                         capture_output=True, text=True, errors="replace",
                     ).stderr
                     if output.video:
@@ -185,13 +198,13 @@ class DownloadTests(unittest.TestCase):
                     maps = ["-map", "0:a:0"]
                     if output.video:
                         maps += ["-map", "0:v:0"]
-                    subprocess.run([self.ffmpeg, "-v", "error", "-i", str(saved), *maps, "-f", "null", "-"], check=True)
+                    subprocess.run([self.ffmpeg, "-nostdin", "-v", "error", "-i", str(saved), *maps, "-f", "null", "-"], check=True)
 
     def test_video_cap_uses_short_edge_for_portrait(self):
         result = self.run_job("portrait.mp4", profile=DownloadProfile("mp4", "480"))
         self.assertEqual(len(result["saved"]), 1, result)
         probe = subprocess.run(
-            [self.ffmpeg, "-hide_banner", "-i", result["saved"][0]],
+            [self.ffmpeg, "-nostdin", "-hide_banner", "-i", result["saved"][0]],
             capture_output=True, text=True, errors="replace",
         )
         self.assertRegex(probe.stderr, r"Video:.*\b480x85[024]\b")
@@ -201,7 +214,7 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(len(result["choices"]), 2, result)
         self.assertEqual(len(result["saved"]), 1, result)
         probe = subprocess.run(
-            [self.ffmpeg, "-hide_banner", "-i", result["saved"][0]],
+            [self.ffmpeg, "-nostdin", "-hide_banner", "-i", result["saved"][0]],
             capture_output=True, text=True, errors="replace",
         )
         self.assertRegex(probe.stderr, r"Audio: mp3.*\b320 kb/s")
@@ -223,7 +236,7 @@ class DownloadTests(unittest.TestCase):
                 result = self.run_job("quality/quality.mpd", profile=DownloadProfile("original", quality))
                 self.assertEqual(len(result["saved"]), 1, result)
                 probe = subprocess.run(
-                    [self.ffmpeg, "-hide_banner", "-i", result["saved"][0]],
+                    [self.ffmpeg, "-nostdin", "-hide_banner", "-i", result["saved"][0]],
                     capture_output=True, text=True, errors="replace",
                 )
                 self.assertIn(dimensions, probe.stderr)

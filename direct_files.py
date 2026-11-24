@@ -49,8 +49,11 @@ def _file_name(headers, final_url: str, media_type: str) -> str:
     reserved = is_reserved(name) if is_reserved else Path(name).is_reserved()
     if reserved:
         name = "_" + name
-    stem = Path(name).stem[:110]
-    return stem + Path(name).suffix[:18]
+    suffix = Path(name).suffix[:18]
+    # Leave room for a numbered collision suffix within the 255-byte component limit.
+    budget = min(200, 240 - len(suffix.encode("utf-8")))
+    stem = Path(name).stem[:110].encode("utf-8")[:budget].decode("utf-8", errors="ignore")
+    return stem + suffix
 
 
 def _read(response, size: int) -> bytes:
@@ -102,7 +105,10 @@ def download_direct(
         data = None
         if not attachment and media_type in GENERIC_TYPES:
             data = _sniff_prefix(response, check_cancel)
-            if data.lstrip().lower().startswith((b"<!doctype html", b"<html", b"#extm3u")):
+            prefix = bytes(data).removeprefix(b"\xef\xbb\xbf").lstrip().lower()
+            if prefix.startswith((b"<!doctype html", b"<html", b"#extm3u", b"<mpd")) or (
+                prefix.startswith(b"<?xml") and b"<mpd" in prefix
+            ):
                 return None
         check_cancel()
         destination = stage / _file_name(headers, final_url, media_type)

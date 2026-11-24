@@ -1,0 +1,119 @@
+name: Desktop tests and packages
+
+on:
+  push:
+    branches: [main, 'codex/**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: chrome-extension
+          - os: windows-latest
+            artifact: windows-x64
+          - os: macos-15-intel
+            artifact: macos-x64
+          - os: macos-15
+            artifact: macos-arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-verified.txt
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Install Linux Qt runtime libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 libxkbcommon0
+      - name: Install verified build dependencies
+        run: python -m pip install -r requirements-verified.txt
+      - name: Test with the FFmpeg binary that will be packaged
+        run: python -c "import os; from imageio_ffmpeg import get_ffmpeg_exe; stream=open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8'); stream.write('VIDEOINDIR_FFMPEG=' + get_ffmpeg_exe() + '\n'); stream.close()"
+      - name: Python tests
+        run: python -m unittest -v
+      - name: Chrome extension tests
+        run: node --test tests/extension.test.mjs
+      - name: Build Windows application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./build.ps1 -Python python
+      - name: Test packaged Windows Native Messaging host
+        if: runner.os == 'Windows'
+        run: python tests/check_packaged_host.py dist/HizliIndir/HizliIndirBrowserHost.exe
+      - name: Smoke test packaged Windows GUI
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath './dist/HizliIndir/HizliIndir.exe' -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru
+          if (!$process.WaitForExit(30000)) {
+            $process.Kill()
+            throw 'Packaged GUI did not finish its smoke test.'
+          }
+          if ($process.ExitCode -ne 0) { throw "Packaged GUI failed: $($process.ExitCode)" }
+      - name: Install NSIS
+        if: runner.os == 'Windows'
+        run: choco install nsis --yes --no-progress
+      - name: Build Windows installer and checksum
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./build-installer.ps1 -MakeNsis 'C:\Program Files (x86)\NSIS\makensis.exe'
+      - name: Build macOS application, DMG and checksum
+        if: runner.os == 'macOS'
+        run: python build_macos.py
+      - name: Verify macOS bundle paths, FFmpeg and code structure
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          test -x dist/HizliIndir.app/Contents/MacOS/HizliIndir
+          test -x dist/HizliIndir.app/Contents/MacOS/HizliIndirBrowserHost
+          codesign --verify --deep --strict --verbose=2 dist/HizliIndir.app
+          file dist/HizliIndir.app/Contents/MacOS/HizliIndir
+          test -x dist/HizliIndir.app/Contents/Frameworks/tools/ffmpeg
+          dist/HizliIndir.app/Contents/Frameworks/tools/ffmpeg -version
+          python -c "import plistlib; p=plistlib.load(open('dist/HizliIndir.app/Contents/Info.plist', 'rb')); assert p['CFBundleExecutable'] == 'HizliIndir'; assert not p.get('LSBackgroundOnly', False)"
+      - name: Test packaged macOS Native Messaging host
+        if: runner.os == 'macOS'
+        run: python tests/check_packaged_host.py dist/HizliIndir.app/Contents/MacOS/HizliIndirBrowserHost
+      - name: Smoke test packaged macOS GUI
+        if: runner.os == 'macOS'
+        run: python -c "import subprocess; subprocess.run(['dist/HizliIndir.app/Contents/MacOS/HizliIndir', '--smoke-test'], timeout=30, check=True)"
+      - name: Verify generated DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: hdiutil verify dist/*.dmg
+      - name: Package Chrome extension and checksum
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p dist
+          version=$(cat version.txt | tr -d '\r\n')
+          (cd browser_extension && zip -r "../dist/Starlit-DeskDownloader-Chrome-$version.zip" .)
+          (cd dist && sha256sum *.zip > SHA256SUMS)
+      - name: Upload checked distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: Starlit-DeskDownloader-${{ matrix.artifact }}
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/SHA256SUMS

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Hızlı İndir",
-  "description": "Açık sekmeyi veya seçtiğin bağlantıyı Windows'taki Hızlı İndir uygulamasına gönder.",
-  "version": "0.2.1",
+  "description": "Açık sekmeyi veya seçtiğin bağlantıyı Windows veya macOS üzerindeki Hızlı İndir uygulamasına gönder.",
+  "version": "0.2.2",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiLB2d4/nbBt4oskTtOeENlpY91BB/iXu1nUiZte6buoO5jh6ThOb30DVH3Xco35zXVZZtdATxnMx0+nWnddXXttciBG7zYDmIzek6hcbNC1NstvXuGLM4MV1ExYKOOBhcrsP4PqHundAIy2i3xrFvidYYZo4JaYVaPDWjaHDXgay4WG15i69JyEEOSH2/y7OV56uALl0b9yifp40TpENOEvDfpHyrnZPnuUaUbeAKZ52IdSa5A86A5HcZdJCOyyMh4v/A2io8k1vDSn3u44/a3s1DyK61iN1kh/tqURFaC+IyDcvRtrR7dLZ1V6J6RmGUZWzIfDDz4Dd+Pzl8g4zwwIDAQAB",
   "permissions": ["activeTab", "contextMenus", "nativeMessaging"],
   "icons": {

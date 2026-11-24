@@ -1,0 +1,122 @@
+[
+  {
+    "url": "https://example.com/a?x=1#b",
+    "accepted": true
+  },
+  {
+    "url": "HTTP://localhost:8080/",
+    "accepted": true
+  },
+  {
+    "url": "https://[::1]:443/",
+    "accepted": true
+  },
+  {
+    "url": "https://\u00f6rnek.test/\u00e7a\u011fr\u0131",
+    "accepted": true
+  },
+  {
+    "url": "https://xn--rnek-4qa.test/",
+    "accepted": true
+  },
+  {
+    "url": "https://example.com:65535",
+    "accepted": true
+  },
+  {
+    "url": "https:example.com",
+    "accepted": false
+  },
+  {
+    "url": "https:/example.com",
+    "accepted": false
+  },
+  {
+    "url": "https:///example.com",
+    "accepted": false
+  },
+  {
+    "url": "https:////example.com",
+    "accepted": false
+  },
+  {
+    "url": "https://",
+    "accepted": false
+  },
+  {
+    "url": "https://user:pass@example.com",
+    "accepted": false
+  },
+  {
+    "url": "https://@example.com",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com:",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com:0",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com:65536",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com:abc",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com\\evil",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com/a b",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com/\nfoo",
+    "accepted": false
+  },
+  {
+    "url": "https://exam\tple.com/",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com/\u007f",
+    "accepted": false
+  },
+  {
+    "url": "file:///tmp/a",
+    "accepted": false
+  },
+  {
+    "url": " https://example.com",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com ",
+    "accepted": false
+  },
+  {
+    "url": "https://[::1",
+    "accepted": false
+  },
+  {
+    "url": "https://[::1]:",
+    "accepted": false
+  },
+  {
+    "url": "https://[::1]:0",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com/\ud800",
+    "accepted": false
+  },
+  {
+    "url": "https://example.com/\ud83d\ude00",
+    "accepted": true
+  }
+]
