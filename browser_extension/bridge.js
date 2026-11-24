@@ -11,9 +11,9 @@ export const statusText = Object.freeze({
 
 export function canSend(url) {
   if (typeof url !== "string" || new TextEncoder().encode(url).byteLength > 8192) return false;
-  if (/[\\\x00-\x20\x7f]/.test(url) || /[\uD800-\uDFFF]/u.test(url)) return false;
+  if (/[\\\x00-\x20\x7f\s\u0085]/.test(url) || /[\uD800-\uDFFF]/u.test(url)) return false;
   const authority = /^https?:\/\/([^/?#]+)/i.exec(url)?.[1];
-  if (!authority || authority.includes("@")) return false;
+  if (!authority || /[@%<>^`{|}]/.test(authority)) return false;
   const port = authority.startsWith("[") ? authority.slice(authority.indexOf("]") + 1) : authority.includes(":") ? authority.slice(authority.indexOf(":")) : "";
   if (port && (!/^:[0-9]+$/.test(port) || Number(port.slice(1)) < 1 || Number(port.slice(1)) > 65535)) return false;
   try {

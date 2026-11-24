@@ -1,6 +1,7 @@
 """Resolve one download, report progress, and publish a completed local file."""
 
 import errno
+import ipaddress
 import os
 import re
 import shutil
@@ -24,14 +25,17 @@ MAX_CHOICES = 25
 def download_url(value: str) -> str | None:
     """Accept a single HTTP(S) URL without embedded credentials."""
     value = value.strip()
-    if (not value or "\\" in value
+    if (not value or "\\" in value or "\ufeff" in value
             or any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in value)
             or not re.match(r"^https?://[^/?#]+", value, re.IGNORECASE)):
         return None
     try:
         address = urlsplit(value)
         if (address.scheme in ("http", "https") and address.hostname
-                and "@" not in address.netloc and not address.netloc.endswith(":")):
+                and not any(character in address.netloc for character in "@%<>^`{|}")
+                and not address.netloc.endswith(":")):
+            if address.netloc.startswith("["):
+                ipaddress.IPv6Address(address.hostname)
             port = address.port
             if port is None or port > 0:
                 return value
