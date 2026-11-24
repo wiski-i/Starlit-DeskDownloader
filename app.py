@@ -386,7 +386,7 @@ class VideoWindow(QWidget):
         except (OSError, subprocess.SubprocessError):
             self._show_feedback("extension_error")
             return
-        dialog = QDialog(self)
+        dialog = QDialog(self, objectName="extensionDialog")
         dialog.setWindowTitle(text("extension_install"))
         dialog.setMinimumWidth(490)
         layout = QVBoxLayout(dialog)

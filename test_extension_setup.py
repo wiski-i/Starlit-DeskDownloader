@@ -80,9 +80,16 @@ with TemporaryDirectory() as directory:
  button=next((b for b in window.findChildren(QPushButton) if b.text()=='Extension Kur'),None)
  assert button is not None
  with patch('app.prepare_extension',return_value=Path(directory)),patch('app.register_native_host') as register:
-  QTimer.singleShot(50,lambda:[d.accept() for d in window.findChildren(QDialog)])
+  colors=[]
+  def inspect_dialog():
+   d=app.activeModalWidget()
+   colors.append(d.grab().toImage().pixelColor(0,0).name())
+   d.accept()
+  QTimer.singleShot(50,inspect_dialog)
   button.click()
   register.assert_called_once()
+  from theme import DIALOG_BACKGROUND
+  assert colors==[DIALOG_BACKGROUND.lower()],colors
  window.tray.hide()
 """],env={**os.environ,'QT_QPA_PLATFORM':'offscreen'},capture_output=True,text=True,timeout=15)
         self.assertEqual(result.returncode,0,result.stderr)

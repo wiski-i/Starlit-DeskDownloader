@@ -12,7 +12,7 @@ FRAME_BORDER = "#503345"
 
 STYLE = """
 QWidget#window { background: %(window)s; color: %(foreground)s; }
-QDialog#shortcutDialog, QMessageBox { background: %(dialog)s; }
+QDialog#shortcutDialog, QDialog#extensionDialog, QMessageBox { background: %(dialog)s; }
 QLabel { color: %(foreground)s; background: transparent; }
 QLabel[muted="true"] { color: #cab4be; }
 QLabel[tinted="true"] { color: #ffc4d6; }
