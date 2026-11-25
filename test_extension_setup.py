@@ -67,29 +67,48 @@ class ExtensionSetupTests(unittest.TestCase):
         import os,subprocess,sys
         result=subprocess.run([sys.executable,'-c',r"""
 from PySide6.QtWidgets import QApplication,QPushButton,QDialog
-from PySide6.QtCore import QSettings,QTimer
+from PySide6.QtCore import QCoreApplication,QEvent,QSettings,QTimer
+from shiboken6 import delete,isValid
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 from app import VideoWindow
 from unix_desktop import BrowserCapture
 app=QApplication([])
-with TemporaryDirectory() as directory:
- settings=QSettings(str(Path(directory)/'settings.ini'),QSettings.Format.IniFormat)
- window=VideoWindow(app,settings,BrowserCapture(Path('unused'),app))
- button=next((b for b in window.findChildren(QPushButton) if b.text()=='Extension Kur'),None)
- assert button is not None
- with patch('app.prepare_extension',return_value=Path(directory)),patch('app.register_native_host') as register:
-  colors=[]
-  def inspect_dialog():
-   d=app.activeModalWidget()
-   colors.append(d.grab().toImage().pixelColor(0,0).name())
-   d.accept()
-  QTimer.singleShot(50,inspect_dialog)
-  button.click()
-  register.assert_called_once()
-  from theme import DIALOG_BACKGROUND
-  assert colors==[DIALOG_BACKGROUND.lower()],colors
- window.tray.hide()
+try:
+ with TemporaryDirectory() as directory:
+  settings=QSettings(str(Path(directory)/'settings.ini'),QSettings.Format.IniFormat)
+  capture=BrowserCapture(Path('unused'),app)
+  window=VideoWindow(app,settings,capture)
+  try:
+   button=next((b for b in window.findChildren(QPushButton) if b.text()=='Extension Kur'),None)
+   assert button is not None
+   with patch('app.prepare_extension',return_value=Path(directory)),patch('app.register_native_host') as register:
+    colors=[]
+    def inspect_dialog():
+     d=app.activeModalWidget()
+     colors.append(d.grab().toImage().pixelColor(0,0).name())
+     d.accept()
+    QTimer.singleShot(50,inspect_dialog)
+    button.click()
+    register.assert_called_once()
+    from theme import DIALOG_BACKGROUND
+    assert colors==[DIALOG_BACKGROUND.lower()],colors
+  finally:
+   # Destroy Python-backed Qt objects while QApplication still owns its event dispatcher.
+   capture.stop()
+   window.tray.hide()
+   window.hide()
+   window.deleteLater()
+   capture.deleteLater()
+   QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
+   app.processEvents()
+   QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
+   assert not isValid(window)
+   assert not isValid(capture)
+   settings.sync()
+finally:
+ delete(app)
+
 """],env={**os.environ,'QT_QPA_PLATFORM':'offscreen'},capture_output=True,text=True,timeout=15)
         self.assertEqual(result.returncode,0,result.stderr)
