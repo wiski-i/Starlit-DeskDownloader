@@ -1,5 +1,7 @@
 """Resolve one download, report progress, and publish a completed local file."""
 
+import errno
+import ipaddress
 import os
 import re
 import shutil
@@ -23,13 +25,20 @@ MAX_CHOICES = 25
 def download_url(value: str) -> str | None:
     """Accept a single HTTP(S) URL without embedded credentials."""
     value = value.strip()
-    if not value or any(character.isspace() or ord(character) < 32 for character in value):
+    if (not value or "\\" in value or "\ufeff" in value
+            or any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in value)
+            or not re.match(r"^https?://[^/?#]+", value, re.IGNORECASE)):
         return None
     try:
         address = urlsplit(value)
-        if address.scheme in ("http", "https") and address.hostname and address.username is None:
-            _ = address.port
-            return value
+        if (address.scheme in ("http", "https") and address.hostname
+                and not any(character in address.netloc for character in "@%<>^`{|}")
+                and not address.netloc.endswith(":")):
+            if address.netloc.startswith("["):
+                ipaddress.IPv6Address(address.hostname)
+            port = address.port
+            if port is None or port > 0:
+                return value
     except ValueError:
         pass
     return None
@@ -47,7 +56,7 @@ def _is_social_video_page(url: str) -> bool:
 
 def ffmpeg_binary() -> str | None:
     """Find the bundled FFmpeg, a configured installation, or the Python wheel."""
-    bundle = ROOT / "tools" / "ffmpeg.exe"
+    bundle = ROOT / "tools" / ("ffmpeg.exe" if sys.platform == "win32" else "ffmpeg")
     if bundle.is_file():
         return str(bundle)
     configured = os.environ.get("VIDEOINDIR_FFMPEG") or shutil.which("ffmpeg")
@@ -70,16 +79,29 @@ def _js_runtimes() -> dict:
 
 
 def _publish(source: Path, folder: Path) -> Path:
-    """Move the finished file into view without replacing an existing download."""
+    """Publish without overwriting; copy fallback is visible while being written."""
     for index in range(1, 10000):
         name = source.name if index == 1 else f"{source.stem} ({index}){source.suffix}"
         target = folder / name
-        if target.exists():
-            continue
         try:
-            source.rename(target)
+            os.link(source, target)
         except FileExistsError:
             continue
+        except OSError as error:
+            if (error.errno not in {errno.EPERM, errno.EOPNOTSUPP, errno.EXDEV, errno.ENOSYS}
+                    and getattr(error, "winerror", None) not in {1, 50, 1314}):
+                raise
+            try:
+                output = target.open("xb")
+            except FileExistsError:
+                continue
+            try:
+                with output, source.open("rb") as input_file:
+                    shutil.copyfileobj(input_file, output)
+            except BaseException:
+                target.unlink(missing_ok=True)
+                raise
+        source.unlink()
         return target
     raise FileExistsError(source.name)
 
@@ -180,7 +202,7 @@ class DownloadJob(QThread):
             "extract_flat": "in_playlist",
             "playlistend": MAX_CHOICES + 1,
             "windowsfilenames": True,
-            "outtmpl": str(stage / "%(title).105s [%(id).22s].%(ext)s"),
+            "outtmpl": str(stage / "%(title).180B [%(id).22B].%(ext)s"),
             "socket_timeout": 8,
             "retries": 2,
             "fragment_retries": 2,

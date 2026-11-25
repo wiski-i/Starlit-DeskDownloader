@@ -6,16 +6,16 @@ import hashlib
 import os
 import uuid
 from ctypes import wintypes
-from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import (
-    QAbstractNativeEventFilter, QObject, QProcess, Qt, QTimer, QUrl, QWinEventNotifier, Signal,
+    QAbstractNativeEventFilter, QObject, QProcess, QTimer, QUrl, QWinEventNotifier, Signal,
 )
-from PySide6.QtGui import QColor, QDesktopServices, QKeySequence
+from PySide6.QtGui import QColor, QDesktopServices
 from shiboken6 import VoidPtr
 
 from downloads import download_url
+from shortcuts import DEFAULT_SHORTCUT, Shortcut
 
 HOTKEY_IDS = (0x4310, 0x4311)
 WM_HOTKEY = 0x0312
@@ -35,40 +35,6 @@ KERNEL32.CreateEventW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.BOOL,
 KERNEL32.CreateEventW.restype = wintypes.HANDLE
 KERNEL32.SetEvent.argtypes = [wintypes.HANDLE]
 KERNEL32.CloseHandle.argtypes = [wintypes.HANDLE]
-
-
-@dataclass(frozen=True)
-class Shortcut:
-    portable: str
-    modifiers: int
-    virtual_key: int
-
-    @classmethod
-    def parse(cls, value: str) -> "Shortcut | None":
-        sequence = QKeySequence.fromString(value, QKeySequence.SequenceFormat.PortableText)
-        if sequence.count() != 1:
-            return None
-        combination = sequence[0]
-        flags = combination.keyboardModifiers()
-        allowed = (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier
-                   | Qt.KeyboardModifier.ShiftModifier)
-        if not flags or flags & ~allowed:
-            return None
-        ctrl = bool(flags & Qt.KeyboardModifier.ControlModifier)
-        alt = bool(flags & Qt.KeyboardModifier.AltModifier)
-        shift = bool(flags & Qt.KeyboardModifier.ShiftModifier)
-        key = int(combination.key())
-        if 0x01000030 <= key <= 0x01000047 and key != int(Qt.Key.Key_F12):
-            virtual_key = 0x70 + key - int(Qt.Key.Key_F1)
-        elif (ctrl or alt) and (ord("A") <= key <= ord("Z") or ord("0") <= key <= ord("9")):
-            virtual_key = key
-        else:
-            return None
-        modifiers = 0x4000 | int(alt) | (int(ctrl) << 1) | (int(shift) << 2)
-        return cls(sequence.toString(QKeySequence.SequenceFormat.PortableText), modifiers, virtual_key)
-
-
-DEFAULT_SHORTCUT = Shortcut("Ctrl+Shift+F9", 0x4006, 0x78)
 
 
 def downloads_folder() -> Path:

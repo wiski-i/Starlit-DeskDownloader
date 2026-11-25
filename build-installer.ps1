@@ -1,6 +1,6 @@
 param(
     [ValidatePattern('^(0|[1-9]\d{0,4})\.(0|[1-9]\d{0,4})\.(0|[1-9]\d{0,4})$')]
-    [string]$Version = '0.2.1',
+    [string]$Version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'version.txt') -Raw).Trim(),
     [string]$MakeNsis = 'makensis.exe'
 )
 
@@ -67,4 +67,5 @@ $setup = Join-Path $PSScriptRoot "dist/Starlit-DeskDownloader-Setup-$Version-win
 if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $setup -PathType Leaf)) {
     throw 'Windows installer build failed.'
 }
+@($setup) | ForEach-Object { $hash = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant(); "${hash}  $([IO.Path]::GetFileName($_))" } | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'dist/SHA256SUMS') -Encoding ascii
 Write-Output $setup

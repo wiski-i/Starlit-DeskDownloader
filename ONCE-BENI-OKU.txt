@@ -1,0 +1,32 @@
+HIZLI İNDİR / STARLIT DESKDOWNLOADER 0.2.2
+
+Windows kullanıcısı:
+Starlit-DeskDownloader-Setup-0.2.2-win-x64.exe dosyasını çalıştır.
+Kurulum Chrome Native Messaging kaydını mevcut kullanıcı için ekler.
+Chrome eklentisi browser_extension klasöründedir; Chrome Geliştirici modu ile yükle.
+
+macOS kullanıcısı:
+Apple Silicon için macos-arm64, Intel için macos-x64 DMG dosyasını seç.
+HizliIndir.app uygulamasını Applications klasörüne sürükle.
+Ardından DMG içindeki register-browser-macos.command dosyasını çalıştır.
+Bu komut yalnızca Google Chrome kaydını yapar. Uygulamayı taşırsan yeniden çalıştır.
+Global kısayolun etkin sekmeye ulaşması için macOS Otomasyon izni gerekebilir.
+Paketler Apple Developer ID ile imzalanmış veya notarize edilmiş sayılmaz.
+
+Kaynak koddan derleme:
+Python 3.12, Node.js 22 ve internet bağlantısı gerekir.
+Windows: NSIS kur, sonra PowerShell içinde ./hazirla-windows.ps1 çalıştır.
+NSIS PATH'te değilse -MakeNsis 'C:\Program Files (x86)\NSIS\makensis.exe' ver.
+macOS: Terminal içinde bash hazirla-macos.command çalıştır.
+Her Mac yalnızca kendi mimarisi için paket üretir; iki mimari iki ayrı build gerektirir.
+
+Çıktılar dist/ altında; SHA256SUMS paketlerin SHA-256 özetlerini içerir.
+requirements-verified.txt ana sürümleri sabitler; tam transitif lock dosyası değildir.
+CI Linux testleri, Windows Setup ve iki ayrı macOS DMG için hazırlanmıştır.
+GitHub Actions artifact üretir, otomatik GitHub Release yayımlamaz.
+Gerçek platform doğrulaması için başarılı ilgili Actions çalışmasını kontrol et.
+Canlı sitelerin tamamı yerel fixture testleriyle doğrulanmış sayılmaz.
+Üçüncü taraf binary ayrıntıları paketteki THIRD-PARTY.txt dosyasındadır.
+Ayrıntılı talimatlar README.md ve docs/kullanim-kilavuzu.md içindedir.
+
+Chrome Extension uygulamanin icindedir. Extension Kur -> Chrome’u ac klasor yolunu kopyalar ve uzantilar sayfasini acar. Gelistirici modu -> Paketlenmemis oge yukle -> yolu yapistirip klasoru sec. Son onay Chrome’da kullanicidadir.

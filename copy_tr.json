@@ -66,5 +66,13 @@
   "theme": "Görünüm",
   "glass": "Parlak Cam",
   "quiet": "Sade Lüks",
-  "technical": "Teknik Lüks"
+  "technical": "Teknik Lüks",
+  "extension_install": "Extension Kur",
+  "extension_steps": "Chrome Extension uygulamanın içinde gelir.\n\n1. Chrome’da Geliştirici modu seçeneğini aç.\n2. Paketlenmemiş öğe yükle seçeneğine tıkla.\n3. Klasör alanına aşağıdaki yolu yapıştır ve klasörü seç.\n\nChrome’u aç klasör yolunu kopyalar.\nSon yükleme onayı Chrome’da sana aittir.",
+  "extension_folder": "Chrome Extension klasörü",
+  "extension_open": "Chrome’u aç",
+  "extension_copy": "Yolu kopyala",
+  "extension_error": "Chrome Extension hazırlanamadı. Uygulamayı yeniden kurup tekrar dene.",
+  "extension_source_hint": "Kaynak koddan Windows/Linux çalıştırmada Native Messaging kaydını geliştirme yönergelerine göre kurmalısın.",
+  "extension_chrome_missing": "Google Chrome açılamadı. Chrome’da chrome://extensions/ adresini açıp klasör yolunu kullan."
 }

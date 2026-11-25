@@ -1,6 +1,6 @@
 # Hızlı İndir kullanıcı kılavuzu
 
-Hızlı İndir ile doğrudan dosya bağlantılarını ve desteklenen video sayfalarını Windows’a kaydedebilirsin. Chrome eklentisi açık sekmeyi veya seçtiğin bağlantıyı masaüstü uygulamasına gönderir.
+Hızlı İndir ile doğrudan dosya bağlantılarını ve desteklenen video sayfalarını Windows veya macOS cihazına kaydedebilirsin. Chrome eklentisi açık sekmeyi veya seçtiğin bağlantıyı masaüstü uygulamasına gönderir.
 
 ## Windows uygulamasını kur
 
@@ -10,9 +10,24 @@ Hızlı İndir ile doğrudan dosya bağlantılarını ve desteklenen video sayfa
 
 Releases sayfasında hazır paket bulunmuyorsa uygulamayı [kaynak koddan çalıştırabilir](../README.md#run-from-source) veya [kurulum paketini derleyebilirsin](../README.md#build-the-windows-package). GitHub’daki **Code → Download ZIP** düğmesi kaynak dosyalarını indirir.
 
-## Chrome eklentisini kur
+## macOS uygulamasını kur
 
-1. Önce Windows uygulamasını Setup ile kur. Chrome içinden biçim ve kalite seçmek için **Windows 0.2.1 veya üzeri** gerekir.
+1. Apple Silicon (M serisi) icin `macos-arm64.dmg`, Intel Mac icin `macos-x64.dmg` paketini ac.
+2. `HizliIndir.app` dosyasini Applications klasorune surukle.
+3. DMG icindeki `register-browser-macos.command` dosyasini calistir. Komut `/Applications` ve `~/Applications` altindaki uygulamayi bulup Google Chrome baglantisini kaydeder. Uygulamayi tasirsan yeniden calistir.
+4. Chrome eklentisini asagidaki gibi yukle. macOS'ta Setup EXE calistirilmaz.
+
+Paket ad-hoc imzalidir; Apple Developer ID ve noter onayi yoktur. macOS uygulamayi engellerse Sistem Ayarlari > Gizlilik ve Guvenlik bolumundeki acma secenegini kullanman gerekebilir. Global kisayolun tarayici adresini okuyabilmesi icin Otomasyon izni istenebilir. Izin verilmezse baglantiyi yapistir veya Chrome panelini kullan. Tamamlanan dosya Finder'da secilir.
+
+## Uygulama içinden Extension kur
+
+Masaüstü uygulamasındaki **Extension Kur** düğmesine bas. Extension dosyaları paketin içinde gelir; ayrı ZIP indirmen gerekmez. Uygulama dosyaları sürüm yükseltmelerinden etkilenmeyen sabit bir klasöre hazırlar ve paketli uygulamanın Chrome bağlantısını kaydeder.
+
+**Chrome’u aç** düğmesi klasör yolunu panoya kopyalar ve `chrome://extensions/` sayfasını açar. **Geliştirici modu → Paketlenmemiş öğe yükle** seçeneğine bas, klasör alanına yolu yapıştır ve seç. Chrome bu son onayı senden ister. Aynı ekranda **Yolu kopyala** ve **Klasörü aç** da bulunur. Güncelleme sonrası Extension Kur düğmesi dosyaları aynı yerde yeniler; Chrome kartından Yeniden Yükle seçeneğini kullan.
+
+## Chrome Extension ZIP ile kur
+
+1. Önce masaüstü uygulamasını Windows Setup veya macOS DMG ile kur. Chrome içinden biçim ve kalite seçmek için **Windows 0.2.1 veya üzeri** gerekir.
 2. Release varlıklarındaki `HizliIndir-Chrome-…zip` dosyasını kalıcı bir klasöre çıkar. Kaynak kodu indirdiysen doğrudan `browser_extension` klasörünü kullanabilirsin.
 3. Chrome’un adres çubuğunda `chrome://extensions` sayfasını aç.
 4. **Geliştirici modu**’nu aç ve **Paketlenmemiş öğe yükle**’ye tıkla.
@@ -60,7 +75,7 @@ ZIP veya PDF gibi doğrudan dosyalar, panelde bir ses ya da video biçimi seçil
 | --- | --- |
 | **Manifest bulunamadı** | ZIP’i çıkar ve içinde doğrudan `manifest.json` bulunan klasörü seç. |
 | **Bu sekme gönderilemiyor** | `chrome://extensions` veya yeni sekme yerine bir HTTP veya HTTPS web sayfası aç ve eklentiyi orada kullan. |
-| **Hızlı İndir’e bağlanılamadı** | Windows uygulamasını Başlat menüsünden açabildiğini kontrol et. Setup ile kurduğundan ve eklentinin etkin olduğundan emin ol. |
+| **Hızlı İndir’e bağlanılamadı** | Masaüstü uygulamasını açabildiğini kontrol et. Windows Setup veya macOS kayıt komutuyla Chrome bağlantısını kurduğundan ve eklentinin etkin olduğundan emin ol. |
 | **Chrome panelinde Biçim ve Kalite yok** | Windows uygulamasını 0.2.1 veya üzeri sürüme güncelle, ardından Chrome eklentisini yeniden yükle. |
 | **Kısayol çalışmıyor** | Hızlı İndir’in bildirim alanında çalıştığını ve Chrome’un önde olduğunu kontrol et. Adres yine alınamıyorsa bağlantıyı masaüstü uygulamasına yapıştır. |
 | **İndirme tamamlanamadı** | Bağlantıyı ve kayıt klasörünü kontrol et. Genel bir web sayfası desteklenmiyorsa doğrudan dosya bağlantısını dene. |
